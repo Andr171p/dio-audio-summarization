@@ -3,8 +3,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, PositiveFloat
 
-from .primitives import Filepath
-from .utils import current_datetime
+from domains.shared_kernel.domain.primitives import Filepath
+from domains.shared_kernel.utils import current_datetime
 
 
 class File(BaseModel):

@@ -1,4 +1,4 @@
-from domains.shared_kernel import Event, File
+from domains.shared_kernel.domain import Event, File
 
 from .entities import AudioRecord
 

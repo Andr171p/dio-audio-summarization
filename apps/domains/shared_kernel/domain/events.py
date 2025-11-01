@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-from .utils import current_datetime
+from domains.shared_kernel.utils import current_datetime
 
 
 class Event(BaseModel, ABC):

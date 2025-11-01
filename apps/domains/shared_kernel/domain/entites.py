@@ -5,8 +5,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .events import EventT
-from .utils import current_datetime
+from domains.shared_kernel.domain.events import EventT
+from domains.shared_kernel.utils import current_datetime
 
 
 class Entity(BaseModel, ABC):
