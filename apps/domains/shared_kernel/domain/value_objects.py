@@ -24,10 +24,19 @@ class FileType(StrEnum):
 
 
 class FileMetadata(BaseModel):
+    """Файловые метаданные
+
+    Attributes:
+        filename: Оригинальное имя файла (то которое указал пользователь)
+        filesize: Размер файла в байтах
+        format: Формат файла, пример: txt, mp3, pdf, ...
+        type: Тип файла, например: image, document, video, audio, ...
+        uploaded_at: Дата и время загрузки файла
+    """
     filename: str
     filesize: PositiveFloat
     format: str
     type: FileType
-    created_at: datetime = Field(default_factory=current_datetime)
+    uploaded_at: datetime = Field(default_factory=current_datetime)
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,3 +1,4 @@
+from abc import ABC
 from collections.abc import Iterator
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -8,13 +9,13 @@ from .events import EventT
 from .utils import current_datetime
 
 
-class Entity(BaseModel):
+class Entity(BaseModel, ABC):
     """Базовая модель для доменной сущности"""
     id: UUID = Field(default_factory=uuid4)
     created_at: datetime = Field(default_factory=current_datetime)
 
 
-class AggregateRoot(BaseModel):
+class AggregateRoot(BaseModel, ABC):
     """Корень агрегата"""
     id: UUID = Field(default_factory=uuid4)
     created_at: datetime = Field(default_factory=current_datetime)
