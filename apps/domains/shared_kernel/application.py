@@ -11,32 +11,40 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class EventBus(Protocol):
-    async def publish(self, event: EventT, **kwargs) -> None: ...
+    """Шина событий (интерфейс-адаптер для брокеров сообщений)"""
+
+    async def publish(self, event: EventT, **kwargs) -> None: pass
 
 
 class WritableRepository[T: BaseModel](Protocol):
-    async def create(self, entity: T) -> T: ...
+    """Репозиторий для изменения данных"""
 
-    async def update(self, id: UUID, **kwargs) -> T: ...  # noqa: A002
+    async def create(self, entity: T) -> T: pass
 
-    async def delete(self, id: UUID) -> bool: ...  # noqa: A002
+    async def update(self, id: UUID, **kwargs) -> T: pass  # noqa: A002
+
+    async def delete(self, id: UUID) -> bool: pass  # noqa: A002
 
 
 class ReadableRepository[T: BaseModel](Protocol):
-    async def read(self, id: UUID) -> T | None: ...  # noqa: A002
+    """Репозиторий для чтения данных"""
 
-    async def read_all(self, page: int, limit: int) -> list[T]: ...
+    async def read(self, id: UUID) -> T | None: pass  # noqa: A002
+
+    async def read_all(self, page: int, limit: int) -> list[T]: pass
 
 
 class CRUDRepository(WritableRepository[T], ReadableRepository[T]):
-    pass
+    """Базовые CRUD операции"""
 
 
 class Storage(Protocol):
-    async def upload(self, file: File) -> None: ...
+    """Файловое/объектное хранилище"""
 
-    async def download(self, filepath: Filepath) -> File | None: ...
+    async def upload(self, file: File) -> None: pass
 
-    async def remove(self, filepath: Filepath) -> bool: ...
+    async def download(self, filepath: Filepath) -> File | None: pass
 
-    async def exists(self, filepath: Filepath) -> bool: ...
+    async def remove(self, filepath: Filepath) -> bool: pass
+
+    async def exists(self, filepath: Filepath) -> bool: pass
