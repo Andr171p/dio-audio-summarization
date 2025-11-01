@@ -1,9 +1,19 @@
+from typing import TypedDict
+
 from uuid import UUID
+
+from domains.shared_kernel.application import CRUDRepository
 
 from ..domain.aggregates import AudioCollection
 
-from domains.shared_kernel.application import WritableRepository
+
+class AudioCollectionUpdate(TypedDict):
+    topic: str
 
 
-class AudioCollectionRepository(WritableRepository[AudioCollection]):
-    async def read(self, id: UUID) -> AudioCollection | None: ...  # noqa: A002
+class AudioCollectionRepository(CRUDRepository[AudioCollection]):
+    async def update(self, id: UUID, **kwargs: AudioCollectionUpdate) -> AudioCollection: ...  # noqa: A002
+
+    async def get_by_user(
+            self, user_id: UUID, page: int, limit: int
+    ) -> list[AudioCollection]: ...

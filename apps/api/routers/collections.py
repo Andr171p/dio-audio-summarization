@@ -2,9 +2,20 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, UploadFile, status
 
-from domains.audio.domain.commands import AddAudioRecordCommand
+from domains.audio.domain.aggregates import AudioCollection
+from domains.audio.domain.commands import AddAudioRecordCommand, CreateAudioCollectionCommand
 
 router = APIRouter(prefix="/collections", tags=["Audio collections"])
+
+
+@router.post(
+    path="",
+    status_code=status.HTTP_201_CREATED,
+    response_model=...,
+    summary=""
+)
+async def create_collection(command: CreateAudioCollectionCommand) -> AudioCollection:
+    ...
 
 
 @router.post(

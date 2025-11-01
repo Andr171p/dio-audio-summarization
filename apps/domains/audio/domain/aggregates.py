@@ -29,10 +29,11 @@ class AudioCollection(AggregateRoot):
 
     @classmethod
     def create(cls, command: CreateAudioCollectionCommand) -> Self:
+        """Создание коллекции"""
         return cls(user_id=command.user_id, topic=command.topic)
 
-    def add_record(self, command: AddAudioRecordCommand) -> Self:
+    def add_record(self, command: AddAudioRecordCommand) -> None:
+        """Добавление записи в коллекцию"""
         record, file = AudioRecord.create(self.user_id, command)
         self.records.append(record)
         self._register_event(AudioRecordAddedEvent(record=record, file=file))
-        return self

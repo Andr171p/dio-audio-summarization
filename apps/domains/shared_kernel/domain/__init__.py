@@ -2,6 +2,7 @@ __all__ = (
     "AggregateRoot",
     "BaseStrPrimitive",
     "CustomStrPrimitive",
+    "DomainError",
     "Entity",
     "Event",
     "File",
@@ -12,5 +13,6 @@ __all__ = (
 
 from .entites import AggregateRoot, Entity
 from .events import Event
+from .exceptions import DomainError
 from .primitives import BaseStrPrimitive, CustomStrPrimitive, Filepath
 from .value_objects import File, FileMetadata, FileType
