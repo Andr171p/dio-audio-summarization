@@ -4,8 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from .domain import File, Filepath
-from .domain.events import EventT
+from .base import EventT
+from .file_managment import File, Filepath
 
 T = TypeVar("T", bound=BaseModel)
 
