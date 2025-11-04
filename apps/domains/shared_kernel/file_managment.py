@@ -1,3 +1,5 @@
+from typing import Self
+
 from datetime import datetime
 from enum import StrEnum
 
@@ -5,6 +7,10 @@ from pydantic import BaseModel, ConfigDict, Field, PositiveFloat
 
 from .base import BaseStrPrimitive
 from .utils import current_datetime
+
+# Пороговое значения для размера файла, если больше порога, то файл большой
+# и нуждается в потоковой обработке
+FILESIZE_MB_THRESHOLD = 100
 
 
 class Filepath(BaseStrPrimitive):
@@ -61,6 +67,15 @@ class File(BaseModel):
     uploaded_at: datetime = Field(default_factory=current_datetime)
 
     model_config = ConfigDict(from_attributes=True, frozen=True)
+
+
+class FilePart(File):
+    """Файловый объект для добавления файла по частям (Multipart upload)
+
+        Attributes:
+            part_number: Номер чанка файла.
+        """
+    part_number: int
 
 
 class FileType(StrEnum):

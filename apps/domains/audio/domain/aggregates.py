@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import Field, NonNegativeInt
 
-from domains.shared_kernel.domain import AggregateRoot
+from domains.shared_kernel import AggregateRoot
 
 from .commands import AddAudioRecordCommand, CreateAudioCollectionCommand
 from .entities import AudioRecord
@@ -24,7 +24,7 @@ class AudioCollection(AggregateRoot):
     """
     user_id: UUID
     topic: str
-    record_count: NonNegativeInt
+    record_count: NonNegativeInt = Field(default=0)
     records: list[AudioRecord] = Field(default_factory=list)
 
     @classmethod
@@ -32,8 +32,9 @@ class AudioCollection(AggregateRoot):
         """Создание коллекции"""
         return cls(user_id=command.user_id, topic=command.topic)
 
-    def add_record(self, command: AddAudioRecordCommand) -> None:
+    def add_record(self, command: AddAudioRecordCommand) -> AudioRecord:
         """Добавление записи в коллекцию"""
-        record, file = AudioRecord.create(self.user_id, command)
+        record = AudioRecord.create(command)
         self.records.append(record)
-        self._register_event(AudioRecordAddedEvent(record=record, file=file))
+        self.record_count += 1
+        return record

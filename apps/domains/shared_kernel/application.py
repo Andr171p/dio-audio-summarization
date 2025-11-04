@@ -1,11 +1,12 @@
 from typing import Protocol, TypeVar
 
+from collections.abc import AsyncIterable
 from uuid import UUID
 
 from pydantic import BaseModel
 
 from .base import EventT
-from .file_managment import File, Filepath
+from .file_managment import File, FilePart, Filepath
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -42,6 +43,8 @@ class Storage(Protocol):
     """Файловое/объектное хранилище"""
 
     async def upload(self, file: File) -> None: pass
+
+    async def upload_multipart(self, file_parts: AsyncIterable[FilePart]) -> None: pass
 
     async def download(self, filepath: Filepath) -> File | None: pass
 

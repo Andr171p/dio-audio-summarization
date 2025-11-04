@@ -5,6 +5,7 @@ from uuid import UUID
 from domains.shared_kernel.application import CRUDRepository
 
 from ..domain.aggregates import AudioCollection
+from ..domain.entities import AudioRecord
 
 
 class AudioCollectionUpdate(TypedDict):
@@ -17,3 +18,5 @@ class AudioCollectionRepository(CRUDRepository[AudioCollection]):
     async def get_by_user(
             self, user_id: UUID, page: int, limit: int
     ) -> list[AudioCollection]: ...
+
+    async def add_record(self, record: AudioRecord) -> AudioRecord: ...

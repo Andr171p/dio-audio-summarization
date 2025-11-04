@@ -1,8 +1,9 @@
 from enum import StrEnum
 
 from pydantic import PositiveFloat
+from pydantic.v1 import PositiveInt
 
-from domains.shared_kernel.domain import FileMetadata
+from domains.shared_kernel import FileMetadata
 
 
 class AudioStatus(StrEnum):
@@ -16,4 +17,5 @@ class AudioStatus(StrEnum):
 
 class AudioFileMetadata(FileMetadata):
     duration: PositiveFloat
+    channels: PositiveInt
     samplerate: PositiveFloat | None = None

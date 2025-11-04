@@ -1,7 +1,10 @@
-from domains.shared_kernel.application import EventBus
+from collections.abc import AsyncIterable
+
+from domains.shared_kernel import EventBus, Storage
 
 from ..domain.aggregates import AudioCollection
 from ..domain.commands import AddAudioRecordCommand, CreateAudioCollectionCommand
+from ..domain.entities import AudioRecord
 from ..domain.exceptions import AudioCollectionNotFoundError
 from .base import AudioCollectionRepository
 
@@ -16,17 +19,28 @@ class CreateAudioCollectionUseCase:
         return await self.repository.create(collection)
 
 
-class UploadAudioRecordUseCase:
+class AddAudioRecordUseCase:
     """Загрузка аудио в коллекцию"""
-    def __init__(self, repository: AudioCollectionRepository, eventbus: EventBus) -> None:
+    def __init__(
+            self,
+            repository: AudioCollectionRepository,
+            storage: Storage,
+            eventbus: EventBus
+    ) -> None:
         self.repository = repository
+        self.storage = storage
         self.eventbus = eventbus
 
-    async def execute(self, command: AddAudioRecordCommand) -> None:
+    async def execute(
+            self, stream: AsyncIterable[bytes], command: AddAudioRecordCommand
+    ) -> AudioRecord:
         collection = await self.repository.read(command.collection_id)
         if collection is None:
-            raise AudioCollectionNotFoundError(f"")
-        collection.add_record(command)
-        await self.repository.create(collection)
+            raise AudioCollectionNotFoundError("")
+        record = collection.add_record(command)
+        file_parts = record.streaming_upload(stream)
+        await self.storage.upload_multipart(file_parts)
+        added_record = await self.repository.add_record(record)
         for event in collection.collect_events():
             await self.eventbus.publish(event)
+        return added_record
