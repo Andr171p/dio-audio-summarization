@@ -4,8 +4,7 @@ from uuid import UUID
 
 from domains.shared_kernel.application import CRUDRepository
 
-from ..domain.aggregates import AudioCollection
-from ..domain.entities import AudioRecord
+from .domain import AudioCollection, AudioRecord
 
 
 class AudioCollectionUpdate(TypedDict):

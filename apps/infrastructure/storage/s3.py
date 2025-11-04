@@ -6,7 +6,7 @@ from aiobotocore.session import get_session
 from botocore.exceptions import ClientError
 
 from domains.shared_kernel import File, Filepath, Storage
-from domains.shared_kernel.file_managment import FilePart
+from domains.shared_kernel.domain import FilePart
 
 
 class S3Storage(Storage):

@@ -6,7 +6,6 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
-from pydantic.v1 import PositiveInt
 from pydantic_core import CoreSchema, core_schema
 
 from .utils import current_datetime
@@ -83,15 +82,3 @@ class BaseStrPrimitive(str, ABC):  # noqa: SLOT000
             core_schema.str_schema(),
             serialization=core_schema.plain_serializer_function_ser_schema(str),
         )
-
-
-class Chunk(BaseModel, ABC):
-    chunk_size: PositiveInt
-    chunk_index: int
-    total_chunks: PositiveInt
-
-    model_config = ConfigDict(from_attributes=True, frozen=True)
-
-    @property
-    def is_last(self) -> bool:
-        return self.chunk_index == self.total_chunks - 1

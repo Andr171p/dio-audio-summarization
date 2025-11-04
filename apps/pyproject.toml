@@ -5,6 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
     "aiobotocore>=2.25.1",
+    "dishka>=1.7.2",
     "fastapi[all]>=0.120.4",
     "filetype>=1.2.0",
     "mutagen>=1.47.0",

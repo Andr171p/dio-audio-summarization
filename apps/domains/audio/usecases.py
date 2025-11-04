@@ -1,0 +1,67 @@
+from collections.abc import AsyncIterable
+
+from domains.shared_kernel import EventBus, Storage
+
+from .commands import (
+    AddAudioRecordCommand,
+    CreateAudioCollectionCommand,
+    SummarizeAudioCollectionCommand,
+)
+from .domain import AudioCollection, AudioRecord
+from .dto import SummarizingState
+from .exceptions import AudioCollectionNotFoundError
+from .repositories import AudioCollectionRepository
+
+
+class CreateAudioCollectionUseCase:
+    """Создание аудио коллекции"""
+    def __init__(self, repository: AudioCollectionRepository) -> None:
+        self.repository = repository
+
+    async def execute(self, command: CreateAudioCollectionCommand) -> AudioCollection:
+        collection = AudioCollection.create(command)
+        return await self.repository.create(collection)
+
+
+class AddAudioRecordUseCase:
+    """Загрузка аудио записи в коллекцию"""
+
+    def __init__(
+            self,
+            repository: AudioCollectionRepository,
+            storage: Storage,
+            eventbus: EventBus
+    ) -> None:
+        self.repository = repository
+        self.storage = storage
+        self.eventbus = eventbus
+
+    async def execute(
+            self, stream: AsyncIterable[bytes], command: AddAudioRecordCommand
+    ) -> AudioRecord:
+        collection = await self.repository.read(command.collection_id)
+        if collection is None:
+            raise AudioCollectionNotFoundError("")
+        record = collection.add_record(command)
+        await self.storage.upload_multipart(record.generate_file_parts(stream))
+        added_record = await self.repository.add_record(record)
+        for event in collection.collect_events():
+            await self.eventbus.publish(event)
+        return added_record
+
+
+class SummarizeAudioCollectionUseCase:
+    def __init__(
+            self, repository: AudioCollectionRepository, eventbus: EventBus
+    ) -> None:
+        self.repository = repository
+        self.eventbus = eventbus
+
+    async def execute(self, command: SummarizeAudioCollectionCommand) -> SummarizingState:
+        collection = await self.repository.read(command.collection_id)
+        if collection is None:
+            raise AudioCollectionNotFoundError("")
+        summarizing_state = collection.summarize(command)
+        for event in collection.collect_events():
+            await self.eventbus.publish(event)
+        return summarizing_state

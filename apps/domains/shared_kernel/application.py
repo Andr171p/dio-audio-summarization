@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from .base import EventT
-from .file_managment import File, FilePart, Filepath
+from .domain import File, FilePart, Filepath
 
 T = TypeVar("T", bound=BaseModel)
 

@@ -1,13 +1,20 @@
 from uuid import UUID
 
+from dishka.integrations.fastapi import DishkaRoute
+from dishka.integrations.fastapi import FromDishka as Depends
 from fastapi import APIRouter, Form, Request, status
 from pydantic import PositiveFloat, PositiveInt
 
-from domains.audio.application.usecases import AddAudioRecordUseCase
-from domains.audio.domain.aggregates import AudioCollection
-from domains.audio.domain.commands import AddAudioRecordCommand, CreateAudioCollectionCommand
+from domains.audio.commands import (
+    AddAudioRecordCommand,
+    CreateAudioCollectionCommand,
+    SummarizeAudioCollectionCommand,
+)
+from domains.audio.domain import AudioCollection, AudioRecord
+from domains.audio.dto import AudioCollectionSummarize
+from domains.audio.usecases import AddAudioRecordUseCase, SummarizeAudioCollectionUseCase
 
-router = APIRouter(prefix="/collections", tags=["Audio collections"])
+router = APIRouter(prefix="/collections", tags=["Audio collections"], route_class=DishkaRoute)
 
 
 @router.post(
@@ -27,6 +34,32 @@ async def create_collection(command: CreateAudioCollectionCommand) -> AudioColle
     summary="Получение аудио коллекций пользователя"
 )
 async def get_my_collections() -> list[AudioCollection]: ...
+
+
+@router.get(
+    path="/{collection_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=AudioCollection,
+    summary="Получение аудио коллекции по её идентификатору"
+)
+async def get_collection(collection_id: UUID) -> AudioCollection: ...
+
+
+@router.post(
+    path="/{collection_id}/summarize",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=...,
+    summary="Создание задачи на суммаризацию"
+)
+async def summarize_collection(
+        collection_id: UUID,
+        schema: AudioCollectionSummarize,
+        usecase: Depends[SummarizeAudioCollectionUseCase]
+) -> ...:
+    command = SummarizeAudioCollectionCommand(
+        collection_id=collection_id, summary_type=schema.summary_type
+    )
+    return await usecase.execute(command)
 
 
 @router.post(
@@ -55,3 +88,12 @@ async def upload_record(
         samplerate=samplerate
     )
     return await usecase.execute(stream=request.stream(), command=command)
+
+
+@router.get(
+    path="/{collection_id}/records/{record_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=AudioRecord,
+    summary="Получение аудио записи из коллекции"
+)
+async def get_record(collection_id: UUID, record_id: UUID) -> AudioRecord: ...
