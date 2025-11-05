@@ -2,8 +2,7 @@ from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute
 from dishka.integrations.fastapi import FromDishka as Depends
-from fastapi import APIRouter, Form, Request, status
-from pydantic import PositiveFloat, PositiveInt
+from fastapi import APIRouter, Request, status
 
 from domains.audio.commands import (
     AddAudioRecordCommand,
@@ -13,6 +12,8 @@ from domains.audio.commands import (
 from domains.audio.domain import AudioCollection, AudioRecord
 from domains.audio.dto import AudioCollectionSummarize
 from domains.audio.usecases import AddAudioRecordUseCase, SummarizeAudioCollectionUseCase
+
+from ..schemas import AudioMetadataHeaders
 
 router = APIRouter(prefix="/collections", tags=["Audio collections"], route_class=DishkaRoute)
 
@@ -66,26 +67,23 @@ async def summarize_collection(
     path="/{collection_id}/records/upload",
     status_code=status.HTTP_202_ACCEPTED,
     response_model=...,
-    summary="Загрузка аудио записи в коллекцию",
+    summary="Потоковая загрузка аудио записи в коллекцию",
 )
 async def upload_record(
-        usecase: AddAudioRecordUseCase,
-        request: Request,
         collection_id: UUID,
-        filename: str = Form(..., description="Имя файла пользователя"),
-        filesize: PositiveFloat = Form(..., description="Размер файла в мб"),
-        duration: PositiveFloat = Form(..., description="Продолжительность в секундах"),
-        channels: PositiveInt = Form(..., description="Количество каналов"),
-        samplerate: PositiveFloat = Form(..., description="Частота дискретизации"),
+        request: Request,
+        usecase: Depends[AddAudioRecordUseCase]
 ) -> ...:
+    headers = AudioMetadataHeaders.model_validate(request.headers)
     command = AddAudioRecordCommand(
         user_id=...,
         collection_id=collection_id,
-        filename=filename,
-        filesize=filesize,
-        duration=duration,
-        channels=channels,
-        samplerate=samplerate
+        filename=headers.filename,
+        filesize=headers.filesize,
+        duration=headers.duration,
+        channels=headers.channels,
+        samplerate=headers.samplerate,
+        bitrate=headers.bitrate
     )
     return await usecase.execute(stream=request.stream(), command=command)
 

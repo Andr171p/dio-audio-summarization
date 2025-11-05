@@ -19,8 +19,9 @@ class AddAudioRecordCommand(BaseModel):
     filename: str
     filesize: PositiveFloat
     duration: PositiveFloat
-    samplerate: PositiveFloat
-    channels: PositiveInt
+    samplerate: PositiveFloat | None = None
+    channels: PositiveInt | None = None
+    bitrate: PositiveInt | None = None
     created_at: datetime = Field(default_factory=current_datetime)
 
 

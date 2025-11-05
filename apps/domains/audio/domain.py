@@ -39,8 +39,9 @@ class AudioCollectionStatus(StrEnum):
 
 class AudioFileMetadata(FileMetadata):
     duration: PositiveFloat
-    channels: PositiveInt
+    channels: PositiveInt | None = None
     samplerate: PositiveFloat | None = None
+    bitrate: PositiveInt | None = None
 
 
 class AudioRecord(Entity):
