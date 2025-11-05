@@ -83,3 +83,91 @@ class RemovingFailedError(AppError):
             details=details,
             original_error=original_error
         )
+
+
+class DuplicateError(AppError):
+    """Дублирование сущности"""
+
+    def __init__(
+            self,
+            entity_name: str,
+            details: dict[str, Any] | None = None,
+            original_error: Exception | None = None,
+    ) -> None:
+        super().__init__(
+            message=f"{entity_name} already exists",
+            code="DUPLICATE_ENTITY",
+            details=details,
+            original_error=original_error
+        )
+
+
+class CreationError(AppError):
+    """Ошибка при создании записи в ресурса"""
+
+    def __init__(
+            self,
+            entity_name: str,
+            details: dict[str, Any] | None = None,
+            original_error: Exception | None = None
+    ) -> None:
+        super().__init__(
+            message=f"Error occurred while {entity_name} creation",
+            code="CREATION_FAILED",
+            details=details,
+            original_error=original_error
+        )
+
+
+class ReadingError(AppError):
+    """Ошибка при чтении данных"""
+
+    def __init__(
+            self,
+            entity_name: str,
+            entity_id: str,
+            details: dict[str, Any] | None = None,
+            original_error: Exception | None = None
+    ) -> None:
+        super().__init__(
+            message=f"Error occurred while reading {entity_name} by {entity_id}",
+            code="READING_FAILED",
+            details=details,
+            original_error=original_error
+        )
+
+
+class UpdateError(AppError):
+    """Ошибка при обновлении ресурса"""
+
+    def __init__(
+            self,
+            entity_name: str,
+            entity_id: str,
+            details: dict[str, Any] | None = None,
+            original_error: Exception | None = None
+    ) -> None:
+        super().__init__(
+            message=f"Error occurred while update {entity_name} by {entity_id}",
+            code="UPDATE_FAILED",
+            details=details,
+            original_error=original_error
+        )
+
+
+class DeleteError(AppError):
+    """Ошибка при удалении ресурса"""
+
+    def __init__(
+            self,
+            entity_name: str,
+            entity_id: str,
+            details: dict[str, Any] | None = None,
+            original_error: Exception | None = None
+    ) -> None:
+        super().__init__(
+            message=f"Error occurred while delete {entity_name} by {entity_id}",
+            code="DELETE_FAILED",
+            details=details,
+            original_error=original_error
+        )

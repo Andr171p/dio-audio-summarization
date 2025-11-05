@@ -11,6 +11,13 @@ from domains.audio.domain import (
     AudioRecord,
 )
 from domains.audio.repositories import AudioCollectionRepository, AudioCollectionUpdate
+from domains.shared_kernel.exceptions import (
+    CreationError,
+    DeleteError,
+    DuplicateError,
+    ReadingError,
+    UpdateError,
+)
 
 from .models import AudioCollectionModel, AudioRecordModel
 
@@ -57,10 +64,14 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
             await self.session.flush()
             await self.session.commit()
             return self._map_model_collection(collection_model)
-        except IntegrityError:
-            ...
-        except SQLAlchemyError:
-            ...
+        except IntegrityError as e:
+            raise DuplicateError(
+                entity_name=AudioCollection.__name__, original_error=e
+            ) from e
+        except SQLAlchemyError as e:
+            raise CreationError(
+                entity_name=AudioCollection.__name__, original_error=e
+            ) from e
 
     async def read(self, id: UUID) -> AudioCollectionModel | None:  # noqa: A002
         try:
@@ -68,8 +79,10 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
             return AudioCollection.model_validate(model) if model is not None else None
-        except SQLAlchemyError:
-            ...
+        except SQLAlchemyError as e:
+            raise ReadingError(
+                entity_name=AudioCollection.__name__, entity_id=str(id), original_error=e
+            ) from e
 
     async def update(self, id: UUID, **kwargs: AudioCollectionUpdate) -> AudioCollection | None:  # noqa: A002
         try:
@@ -83,18 +96,27 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
             await self.session.commit()
             model = result.scalar_one_or_none()
             return AudioCollection.model_validate(model) if model is not None else None
-        except IntegrityError:
-            ...
-        except SQLAlchemyError:
-            ...
+        except IntegrityError as e:
+            raise DuplicateError(
+                entity_name=AudioCollection.__name__, original_error=e
+            ) from e
+        except SQLAlchemyError as e:
+            raise UpdateError(
+                entity_name=AudioCollection.__name__,
+                entity_id=str(id),
+                original_error=e,
+                details=kwargs,
+            ) from e
 
     async def delete(self, id: UUID) -> bool:  # noqa: A002
         try:
             stmt = delete(AudioCollectionModel).where(AudioCollectionModel.id == id)
             result = await self.session.execute(stmt)
             await self.session.commit()
-        except SQLAlchemyError:
-            ...
+        except SQLAlchemyError as e:
+            raise DeleteError(
+                entity_name=AudioCollection.__name__, entity_id=str(id), original_error=e
+            ) from e
         else:
             return result.rowcount > 0
 
@@ -104,7 +126,7 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
             self.session.add(model)
             await self.session.commit()
             return AudioRecord.model_validate(model)
-        except IntegrityError:
-            ...
-        except SQLAlchemyError:
-            ...
+        except IntegrityError as e:
+            raise DuplicateError(entity_name=AudioRecord.__name__, original_error=e) from e
+        except SQLAlchemyError as e:
+            raise CreationError(entity_name=AudioRecord.__name__, original_error=e) from e
