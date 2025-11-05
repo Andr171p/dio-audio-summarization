@@ -23,8 +23,18 @@ class PostgresSettings(BaseSettings):
         return f"postgresql+{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
 
 
+class MinioSettings(BaseSettings):
+    url: str = "<URL>"
+    user: str = "<USER>"
+    password: str = "<PASSWORD>"
+    bucket: str = "dev"
+
+    model_config = SettingsConfigDict(env_prefix="MINIO_")
+
+
 class Settings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
+    minio: MinioSettings = MinioSettings()
 
 
 settings: Final[Settings] = Settings()

@@ -1,17 +1,22 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from dishka.integrations.fastapi import DishkaRoute
 from dishka.integrations.fastapi import FromDishka as Depends
 from fastapi import APIRouter, Request, status
 
-from domains.audio.commands import (
+from modules.audio.application import (
+    AddAudioRecordUseCase,
+    CreateAudioCollectionUseCase,
+    SummarizeAudioCollectionUseCase,
+)
+from modules.audio.domain import (
     AddAudioRecordCommand,
+    AudioCollection,
+    AudioRecord,
     CreateAudioCollectionCommand,
     SummarizeAudioCollectionCommand,
+    SummarizingState,
 )
-from domains.audio.domain import AudioCollection, AudioRecord
-from domains.audio.dto import AudioCollectionSummarize
-from domains.audio.usecases import AddAudioRecordUseCase, SummarizeAudioCollectionUseCase
 
 from ..schemas import AudioMetadataHeaders
 
@@ -21,11 +26,13 @@ router = APIRouter(prefix="/collections", tags=["Audio collections"], route_clas
 @router.post(
     path="",
     status_code=status.HTTP_201_CREATED,
-    response_model=...,
+    response_model=AudioCollection,
     summary=""
 )
-async def create_collection(command: CreateAudioCollectionCommand) -> AudioCollection:
-    ...
+async def create_collection(
+        command: CreateAudioCollectionCommand, usecase: Depends[CreateAudioCollectionUseCase]
+) -> AudioCollection:
+    return await usecase.execute(command)
 
 
 @router.get(
@@ -49,16 +56,15 @@ async def get_collection(collection_id: UUID) -> AudioCollection: ...
 @router.post(
     path="/{collection_id}/summarize",
     status_code=status.HTTP_202_ACCEPTED,
-    response_model=...,
+    response_model=SummarizingState,
     summary="Создание задачи на суммаризацию"
 )
 async def summarize_collection(
         collection_id: UUID,
-        schema: AudioCollectionSummarize,
         usecase: Depends[SummarizeAudioCollectionUseCase]
-) -> ...:
+) -> SummarizingState:
     command = SummarizeAudioCollectionCommand(
-        collection_id=collection_id, summary_type=schema.summary_type
+        collection_id=collection_id, summary_type=...
     )
     return await usecase.execute(command)
 
@@ -66,17 +72,17 @@ async def summarize_collection(
 @router.post(
     path="/{collection_id}/records/upload",
     status_code=status.HTTP_202_ACCEPTED,
-    response_model=...,
+    response_model=AudioRecord,
     summary="Потоковая загрузка аудио записи в коллекцию",
 )
 async def upload_record(
         collection_id: UUID,
         request: Request,
         usecase: Depends[AddAudioRecordUseCase]
-) -> ...:
+) -> AudioRecord:
     headers = AudioMetadataHeaders.model_validate(request.headers)
     command = AddAudioRecordCommand(
-        user_id=...,
+        user_id=uuid4(),
         collection_id=collection_id,
         filename=headers.filename,
         filesize=headers.filesize,

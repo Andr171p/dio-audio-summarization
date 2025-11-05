@@ -16,6 +16,20 @@ services:
       timeout: 3s
       retries: 3
 
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    volumes:
+      - ./.docker/minio-data:/data       # Локальная папка для хранения данных
+    ports:
+      - "9900:9000"              # S3 API (для SDK и CLI)
+      - "9901:9001"              # Web Console (UI)
+    restart: unless-stopped
+
 
 volumes:
   postgres_data:
