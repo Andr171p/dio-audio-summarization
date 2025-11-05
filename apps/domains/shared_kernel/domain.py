@@ -1,5 +1,3 @@
-from typing import Self
-
 from datetime import datetime
 from enum import StrEnum
 

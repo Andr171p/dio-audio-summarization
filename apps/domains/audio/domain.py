@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt
+from pydantic import BaseModel, Field, NonNegativeInt, PositiveFloat, PositiveInt
 
 from domains.shared_kernel import (
     AggregateRoot,
@@ -22,7 +22,6 @@ from .commands import (
     CreateAudioCollectionCommand,
     SummarizeAudioCollectionCommand,
 )
-from .dto import SummarizingState
 from .events import AudioCollectionSummarizationStartedEvent, AudioRecordAddedEvent
 
 
@@ -35,6 +34,13 @@ class AudioCollectionStatus(StrEnum):
     TRANSCRIBED = "transcribed"
     SUMMARIZED = "summarized"
     ERROR = "error"
+
+
+class SummarizingState(BaseModel):
+    collection_id: UUID
+    records_summarizing: list[UUID]
+    status: AudioCollectionStatus
+    approximate_waiting_time: PositiveInt
 
 
 class AudioFileMetadata(FileMetadata):
@@ -51,7 +57,7 @@ class AudioRecord(Entity):
     metadata: AudioFileMetadata
 
     async def generate_file_parts(self, stream: AsyncIterable[bytes]) -> AsyncIterable[FilePart]:
-        """Асинхронный генератор для потоковой загрузке файла по частям"""
+        """Асинхронный генератор для потоковой загрузки файла по частям"""
         part_number = 1
         async for chunk in stream:
             yield FilePart(
