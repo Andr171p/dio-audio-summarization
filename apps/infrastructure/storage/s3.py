@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator, AsyncIterable
 from contextlib import asynccontextmanager
 
@@ -5,8 +6,14 @@ from aiobotocore.client import AioBaseClient
 from aiobotocore.session import get_session
 from botocore.exceptions import ClientError
 
-from domains.shared_kernel import File, Filepath, Storage
-from domains.shared_kernel.domain import FilePart
+from domains.shared_kernel import File, FilePart, Filepath, Storage
+from domains.shared_kernel.exceptions import (
+    DownloadFailedError,
+    RemovingFailedError,
+    UploadingFailedError,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class S3Storage(Storage):
@@ -41,7 +48,11 @@ class S3Storage(Storage):
                     Bucket=self.bucket, Key=file.filepath, Body=file.content
                 )
         except ClientError as e:
-            raise UploadingError(f"Error while file uploading, error: {e}") from e
+            raise UploadingFailedError(
+                f"File uploading failed with error: {e}",
+                details={"filepath": file.filepath, "filesize": file.filesize},
+                original_error=e
+            ) from e
 
     async def download(self, filepath: Filepath) -> File | None:
         try:
@@ -55,40 +66,71 @@ class S3Storage(Storage):
                     last_modified=response["LastModified"]
                 )
         except ClientError as e:
-            raise DownloadingError(f"Error while file downloading, error: {e}") from e
+            raise DownloadFailedError(
+                f"File download failed with error: {e}",
+                details={"filepath": filepath},
+                original_error=e
+            ) from e
 
     async def remove(self, filepath: Filepath) -> bool:
         try:
             async with self._get_client() as client:
                 response = await client.delete_object(Bucket=self.bucket, Key=filepath)
-        except ...:
-            ...
+        except ClientError as e:
+            raise RemovingFailedError(
+                f"File remove failed with error: {e}",
+                details={"filepath": filepath},
+                original_error=e
+            ) from e
 
     async def exists(self, filepath: Filepath) -> bool: ...
 
     async def upload_multipart(self, file_parts: AsyncIterable[FilePart]) -> None:
-        upload_id: str | None = None
-        parts: list[dict[str, int | str]] = []
-        async with self._get_client() as client:
-            async for file_part in file_parts:
-                if upload_id is None:
-                    response = await client.create_multipart_upload(
-                        Bucket=self.bucket, Key=file_part.filepath
+        try:
+            upload_id: str | None = None
+            parts: list[dict[str, int | str]] = []
+            async with self._get_client() as client:
+                async for file_part in file_parts:
+                    if upload_id is None:
+                        response = await client.create_multipart_upload(
+                            Bucket=self.bucket, Key=file_part.filepath
+                        )
+                        upload_id = response["UploadId"]
+                        logger.info(
+                            "Initiate multipart uploading",
+                            extra={
+                                "upload_id": upload_id,
+                                "filepath": file_part.filepath,
+                                "filesize": file_part.filesize,
+                            }
+                        )
+                    part_response = await client.upload_part(
+                        Bucket=self.bucket,
+                        Key=file_part.filepath,
+                        UploadId=upload_id,
+                        PartNumber=file_part.part_number,
+                        Body=file_part.content
                     )
-                    upload_id = response["UploadId"]
-                part_response = await client.upload_part(
+                    parts.append({
+                        "PartNumber": file_part.part_number, "ETag": part_response["ETag"]
+                    })
+                    logger.info(
+                        "Successful upload file part with number %s", file_part.part_number,
+                        extra={"upload_id": upload_id, "etag": part_response["ETag"]},
+                    )
+                client.complete_multipart_upload(
                     Bucket=self.bucket,
                     Key=file_part.filepath,
                     UploadId=upload_id,
-                    PartNumber=file_part.part_number,
-                    Body=file_part.content
+                    MultipartUpload={"Parts": parts}
                 )
-                parts.append({
-                    "PartNumber": file_part.part_number, "ETag": part_response["ETag"]
-                })
-            client.complete_multipart_upload(
-                Bucket=self.bucket,
-                Key=file_part.filepath,
-                UploadId=upload_id,
-                MultipartUpload={"Parts": parts}
-            )
+                logger.info(
+                    "Multipart upload completed for %s", len(parts),
+                    extra={"upload_id": upload_id, "part_count": len(parts)},
+                )
+        except ClientError as e:
+            raise UploadingFailedError(
+                f"Multipart upload failed with error: {e}",
+                details={"filepath": file_part.filepath, "filesize": file_part.filesize},
+                original_error=e
+            ) from e
