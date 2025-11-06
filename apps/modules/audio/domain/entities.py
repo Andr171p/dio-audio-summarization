@@ -18,6 +18,8 @@ from .commands import (
 )
 from .events import AudioCollectionSummarizationStartedEvent, AudioRecordAddedEvent
 
+MIN_PART_SIZE = 5 * 1024 * 1024
+
 
 class AudioCollectionStatus(StrEnum):
     """Статус аудио коллекции"""
@@ -50,17 +52,36 @@ class AudioRecord(Entity):
     filepath: Filepath
     metadata: AudioFileMetadata
 
-    async def generate_file_parts(self, stream: AsyncIterable[bytes]) -> AsyncIterable[FilePart]:
-        """Асинхронный генератор для потоковой загрузки файла по частям"""
+    async def generate_file_parts(
+            self, stream: AsyncIterable[bytes], min_part_size: PositiveInt = MIN_PART_SIZE
+    ) -> AsyncIterable[FilePart]:
+        """Асинхронный генератор для потоковой загрузки файла по частям
+
+        :param stream: Байтовых поток файла, которые нужно загрузить.
+        :param min_part_size: Минимальный размер части файла.
+        """
         part_number = 1
+        buffer = b""
         async for chunk in stream:
+            buffer += chunk
+            while len(buffer) >= min_part_size:
+                content_part = buffer[:min_part_size]
+                buffer = buffer[min_part_size:]
+                yield FilePart(
+                    filepath=self.filepath,
+                    filesize=len(content_part),
+                    content=content_part,
+                    part_number=part_number,
+                )
+            part_number += 1
+        # Отправка оставшихся данных (последняя часть может быть меньше min_part_size)
+        if buffer:
             yield FilePart(
                 filepath=self.filepath,
-                filesize=self.metadata.filesize,
-                content=chunk,
+                filesize=len(buffer),
+                content=buffer,
                 part_number=part_number,
             )
-            part_number += 1
 
 
 class AudioCollection(AggregateRoot):

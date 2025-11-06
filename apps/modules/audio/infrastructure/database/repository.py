@@ -57,7 +57,7 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
                 AudioRecordModel(
                     collection_id=collection_model.id,
                     filepath=record.filepath,
-                    record_metadata=record.metadata.model_dump()
+                    record_metadata=record.metadata.model_dump(mode="json")
                 )
                 for record in collection.records
             ]
@@ -139,12 +139,19 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
                 id=record.id,
                 collection_id=record.collection_id,
                 filepath=record.filepath,
-                record_metadata=record.metadata.model_dump(),
+                record_metadata=record.metadata.model_dump(mode="json"),
                 created_at=record.created_at,
             )
             self.session.add(model)
             await self.session.commit()
-            return AudioRecord.model_validate(model)
+            await self.session.refresh(model)
+            return AudioRecord(
+                id=model.id,
+                collection_id=model.collection_id,
+                filepath=model.filepath,
+                metadata=AudioFileMetadata.model_validate(model.record_metadata),
+                created_at=model.created_at,
+            )
         except IntegrityError as e:
             await self.session.rollback()
             raise DuplicateError(entity_name=AudioRecord.__name__, original_error=e) from e

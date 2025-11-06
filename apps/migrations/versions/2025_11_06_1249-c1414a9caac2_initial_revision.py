@@ -1,8 +1,8 @@
 """Initial revision
 
-Revision ID: db21a5fd2189
+Revision ID: c1414a9caac2
 Revises: 
-Create Date: 2025-11-05 17:10:29.368646
+Create Date: 2025-11-06 12:49:30.111120
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'db21a5fd2189'
+revision: str = 'c1414a9caac2'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,7 +36,7 @@ def upgrade() -> None:
     op.create_table('audio_records',
     sa.Column('collection_id', sa.Uuid(), nullable=False),
     sa.Column('filepath', sa.String(), nullable=False),
-    sa.Column('record_metadata', postgresql.JSON(astext_type=sa.Text()), nullable=False),
+    sa.Column('record_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),

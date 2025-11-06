@@ -5,7 +5,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import ARRAY, DateTime, String, Text, func
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
@@ -31,7 +31,7 @@ StrUnique = Annotated[str, mapped_column(unique=True)]
 TextNullable = Annotated[str | None, mapped_column(Text, nullable=True)]
 PostgresUUID = Annotated[UUID, mapped_column(PG_UUID(as_uuid=True), unique=False)]
 DatetimeNullable = Annotated[datetime | None, mapped_column(DateTime, nullable=True)]
-DictJson = Annotated[dict[str, Any], mapped_column(JSON)]
+DictJson = Annotated[dict[str, Any], mapped_column(JSONB)]
 
 
 class Base(AsyncAttrs, DeclarativeBase):

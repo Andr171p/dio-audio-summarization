@@ -18,6 +18,7 @@ async def upload_large_audio_file(
         raise FileNotFoundError(f"File {file_path} not found")
 
     file_size = file_path.stat().st_size
+    print(file_size)
 
     # Заголовки согласно AudioMetadataHeaders
     headers = {
@@ -38,9 +39,7 @@ async def upload_large_audio_file(
                     if not chunk:
                         break
                     yield chunk
-
         url = f"{base_url}/api/v1/collections/{collection_id}/records/upload"
-
         try:
             async with session.post(
                     url,
@@ -48,7 +47,6 @@ async def upload_large_audio_file(
                     headers=headers,
                     timeout=aiohttp.ClientTimeout(total=3600)  # 1 hour timeout для больших файлов
             ) as response:
-
                 if response.status == 202:
                     result = await response.json()
                     print(f"✅ Upload successful: {result}")
@@ -60,16 +58,15 @@ async def upload_large_audio_file(
         except aiohttp.ClientError as e:
             print(f"❌ Network error during upload: {e}")
             raise
-
     return None
 
 
 # Использование
 async def main():
-    collection_id = UUID("737a7007-aed3-4c10-8436-ecdc612fdcb7")
+    collection_id = UUID("8b1d84c4-7ed8-4a11-a751-0eb60c420cc9")
 
     # Для больших файлов используем потоковую загрузку
-    await upload_large_audio_file(collection_id, "22 окт., 09.38_.mp3")
+    await upload_large_audio_file(collection_id, "29.10.2025 11.07.m4a")
 
 
 if __name__ == "__main__":
