@@ -9,6 +9,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "dishka>=1.7.2",
     "fastapi[all]>=0.120.4",
+    "faststream[rabbit]>=0.6.3",
     "filetype>=1.2.0",
     "mutagen>=1.47.0",
     "mypy>=1.18.2",

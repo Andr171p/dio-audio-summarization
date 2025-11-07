@@ -4,6 +4,8 @@ from collections.abc import AsyncIterable
 
 from ..file_managment import File, FilePart, Filepath
 
+EXPIRES_IN = 3600
+
 
 class Storage(Protocol):
     """Файловое/объектное хранилище"""
@@ -14,8 +16,14 @@ class Storage(Protocol):
 
     async def download(self, filepath: Filepath) -> File | None: pass
 
-    async def download_multipart(self, filepath: Filepath) -> AsyncIterable[FilePart]: pass
+    async def download_multipart(
+            self, filepath: Filepath, part_size: int
+    ) -> AsyncIterable[FilePart]: pass
 
     async def remove(self, filepath: Filepath) -> bool: pass
 
     async def exists(self, filepath: Filepath) -> bool: pass
+
+    async def generate_presigned_url(
+            self, filepath: Filepath, expires_in: int = EXPIRES_IN
+    ) -> str: pass

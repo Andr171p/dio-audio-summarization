@@ -1,11 +1,12 @@
 from typing import Self
 
+import math
 from collections.abc import AsyncIterable
 from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, NonNegativeInt, PositiveFloat, PositiveInt
+from pydantic import BaseModel, Field, NonNegativeInt, PositiveFloat, PositiveInt, computed_field
 
 from modules.shared_kernel.domain import AggregateRoot, Entity
 from modules.shared_kernel.file_managment import FileMetadata, FilePart, Filepath, FileType
@@ -19,6 +20,16 @@ from .commands import (
 from .events import AudioCollectionSummarizationStartedEvent, AudioRecordAddedEvent
 
 MIN_PART_SIZE = 5 * 1024 * 1024
+
+
+class SegmentTimecode(BaseModel):
+    """Таим-код сегмента"""
+    start_time: float
+    end_time: float
+
+    @computed_field(description="Продолжительность аудио сегмента")
+    def duration(self) -> float:
+        return self.end_time - self.start_time
 
 
 class AudioCollectionStatus(StrEnum):
@@ -69,8 +80,9 @@ class AudioRecord(Entity):
                 buffer = buffer[min_part_size:]
                 yield FilePart(
                     filepath=self.filepath,
-                    filesize=len(content_part),
+                    filesize=self.metadata.filesize,
                     content=content_part,
+                    part_size=len(content_part),
                     part_number=part_number,
                 )
             part_number += 1
@@ -78,10 +90,25 @@ class AudioRecord(Entity):
         if buffer:
             yield FilePart(
                 filepath=self.filepath,
-                filesize=len(buffer),
+                filesize=self.metadata.filesize,
                 content=buffer,
+                part_size=len(buffer),
                 part_number=part_number,
             )
+
+    def compute_segment_timecodes(self, segment_duration: float) -> list[SegmentTimecode]:
+        """Расчёт тайм-кодов для разбиения по сегментам сегментов
+
+        :param segment_duration: Продолжительность сегмента в секундах.
+        """
+        segment_count = math.ceil(self.metadata.duration / segment_duration)
+        return [
+            SegmentTimecode(
+                start_time=segment_index * segment_duration,
+                end_time=min((segment_index + 1) * segment_duration, self.metadata.duration),
+            )
+            for segment_index in range(segment_count)
+        ]
 
 
 class AudioCollection(AggregateRoot):
@@ -150,8 +177,10 @@ class AudioCollection(AggregateRoot):
         waiting_time = self._calculate_approximate_summarization_time()
         self._register_event(AudioCollectionSummarizationStartedEvent(
             collection_id=self.id,
-            record_files=[record.filepath for record in self.records],
-            summary_type=command.summary_type
+            collection_duration=sum(record.metadata.duration for record in self.records),
+            record_filepaths=[record.filepath for record in self.records],
+            summary_type=command.summary_type,
+            summary_format=command.summary_format,
         ))
         self._set_status(AudioCollectionStatus.PROCESSING)
         return SummarizingState(

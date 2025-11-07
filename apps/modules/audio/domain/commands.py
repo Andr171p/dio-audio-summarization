@@ -29,3 +29,4 @@ class SummarizeAudioCollectionCommand(BaseModel):
     """Суммаризовать аудио коллекцию"""
     collection_id: UUID
     summary_type: str
+    summary_format: str

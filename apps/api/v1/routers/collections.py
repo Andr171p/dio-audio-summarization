@@ -64,14 +64,14 @@ async def summarize_collection(
         usecase: Depends[SummarizeAudioCollectionUseCase]
 ) -> SummarizingState:
     command = SummarizeAudioCollectionCommand(
-        collection_id=collection_id, summary_type=...
+        collection_id=collection_id, summary_type=..., summary_format=...
     )
     return await usecase.execute(command)
 
 
 @router.post(
     path="/{collection_id}/records/upload",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_201_CREATED,
     response_model=AudioRecord,
     summary="Потоковая загрузка аудио записи в коллекцию",
 )

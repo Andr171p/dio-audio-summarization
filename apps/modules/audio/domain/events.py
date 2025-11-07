@@ -2,6 +2,8 @@ from typing import ClassVar
 
 from uuid import UUID
 
+from pydantic import PositiveFloat
+
 from modules.shared_kernel.domain import Event
 from modules.shared_kernel.file_managment import Filepath
 
@@ -16,9 +18,11 @@ class AudioRecordAddedEvent(Event):
 
 
 class AudioCollectionSummarizationStartedEvent(Event):
-    """Началась суммаризация аудио коллекции"""
+    """Инициирует операцию на суммаризацию аудио """
     event_type: ClassVar[str] = "audio_collection_summarization_started"
 
     collection_id: UUID
-    record_files: list[Filepath]
+    collection_duration: PositiveFloat
+    record_filepaths: list[Filepath]
     summary_type: str
+    summary_format: str

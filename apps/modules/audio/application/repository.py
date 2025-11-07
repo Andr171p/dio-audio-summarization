@@ -1,14 +1,15 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from uuid import UUID
 
 from modules.shared_kernel.application import CRUDRepository
 
-from ..domain import AudioCollection, AudioRecord
+from ..domain import AudioCollection, AudioCollectionStatus, AudioRecord
 
 
 class AudioCollectionUpdate(TypedDict):
-    topic: str
+    topic: NotRequired[str]
+    status: NotRequired[AudioCollectionStatus]
 
 
 class AudioCollectionRepository(CRUDRepository[AudioCollection]):

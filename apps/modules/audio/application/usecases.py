@@ -5,6 +5,7 @@ from modules.shared_kernel.application import EventBus, Storage
 from ..domain import (
     AddAudioRecordCommand,
     AudioCollection,
+    AudioCollectionStatus,
     AudioRecord,
     CreateAudioCollectionCommand,
     SummarizeAudioCollectionCommand,
@@ -69,4 +70,7 @@ class SummarizeAudioCollectionUseCase:
         summarizing_state = collection.summarize(command)
         for event in collection.collect_events():
             await self.eventbus.publish(event)
+        await self.repository.update(
+            command.collection_id, {"status": AudioCollectionStatus.PROCESSING}
+        )
         return summarizing_state

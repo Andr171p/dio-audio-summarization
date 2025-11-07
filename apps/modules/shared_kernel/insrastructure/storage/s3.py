@@ -1,4 +1,5 @@
 import logging
+import math
 from collections.abc import AsyncGenerator, AsyncIterable
 from contextlib import asynccontextmanager
 
@@ -55,37 +56,6 @@ class S3Storage(Storage):
                 original_error=e
             ) from e
 
-    async def download(self, filepath: Filepath) -> File | None:
-        try:
-            async with self._get_client() as client:
-                response = await client.get_object(Bucket=self.bucket, Key=filepath)
-                content = await response["Body"].read()
-                return File(
-                    filepath=filepath,
-                    content=content,
-                    filesize=response["ContentLength"],
-                    last_modified=response["LastModified"]
-                )
-        except ClientError as e:
-            raise DownloadFailedError(
-                f"File download failed with error: {e}",
-                details={"filepath": filepath},
-                original_error=e
-            ) from e
-
-    async def remove(self, filepath: Filepath) -> bool:
-        try:
-            async with self._get_client() as client:
-                response = await client.delete_object(Bucket=self.bucket, Key=filepath)
-        except ClientError as e:
-            raise RemovingFailedError(
-                f"File remove failed with error: {e}",
-                details={"filepath": filepath},
-                original_error=e
-            ) from e
-
-    async def exists(self, filepath: Filepath) -> bool: ...
-
     async def upload_multipart(self, file_parts: AsyncIterable[FilePart]) -> None:
         try:
             upload_id: str | None = None
@@ -135,3 +105,82 @@ class S3Storage(Storage):
                 details={"filepath": file_part.filepath, "filesize": file_part.filesize},
                 original_error=e
             ) from e
+
+    async def download(self, filepath: Filepath) -> File | None:
+        try:
+            async with self._get_client() as client:
+                response = await client.get_object(Bucket=self.bucket, Key=filepath)
+                content = await response["Body"].read()
+                return File(
+                    filepath=filepath,
+                    content=content,
+                    filesize=response["ContentLength"],
+                    last_modified=response["LastModified"]
+                )
+        except ClientError as e:
+            raise DownloadFailedError(
+                f"File download failed with error: {e}",
+                details={"filepath": filepath},
+                original_error=e
+            ) from e
+
+    async def download_multipart(
+            self, filepath: Filepath, part_size: int
+    ) -> AsyncIterable[FilePart]:
+        try:
+            async with self._get_client() as client:
+                head = await client.head_object(Bucket=self.bucket, Key=filepath)
+                filesize, uploaded_at = head["ContentLength"], head["LastModified"]
+                part_numbers = math.ceil(filesize / part_size)
+                logger.info(
+                    "Start multipart downloading file, filesize %s, total parts %s",
+                    filesize, part_numbers
+                )
+                for part_number in part_numbers:
+                    start = part_numbers * part_size
+                    end = min((part_numbers + 1) * part_size - 1, filesize - 1)
+                    logger.info(
+                        "Downloading part %s: bytes %s-%s", part_number, start, end
+                    )
+                    response = await client.get_object(
+                        Bucket=self.bucket, Key=filepath, Range=f"bytes={start}-{end}"
+                    )
+                    content = await response["Body"].read()
+                    yield FilePart(
+                        filepath=filepath,
+                        filesize=filesize,
+                        content=content,
+                        uploaded_at=uploaded_at,
+                        part_size=len(content),
+                        part_number=part_number
+                    )
+        except ClientError as e:
+            raise DownloadFailedError(
+                f"File multipart downloading failed with error: {e}",
+                details={"filepath": filepath, "part_size": part_size},
+                original_error=e
+            ) from e
+
+    async def remove(self, filepath: Filepath) -> bool:
+        try:
+            async with self._get_client() as client:
+                response = await client.delete_object(Bucket=self.bucket, Key=filepath)
+        except ClientError as e:
+            raise RemovingFailedError(
+                f"File remove failed with error: {e}",
+                details={"filepath": filepath},
+                original_error=e
+            ) from e
+
+    async def exists(self, filepath: Filepath) -> bool: ...
+
+    async def generate_presigned_url(self, filepath: Filepath, expires_in: int) -> str:
+        try:
+            async with self._get_client() as client:
+                return await client.generate_presigned_url(
+                    "get_object",
+                    Params={"Bucket": self.bucket, "Key": filepath},
+                    ExpiresIn=expires_in
+                )
+        except ClientError as e:
+            ...

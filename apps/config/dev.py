@@ -32,9 +32,23 @@ class MinioSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="MINIO_")
 
 
+class RabbitMQSettings(BaseSettings):
+    user: str = "<USER>"
+    password: str = "<PASSWORD>"
+    host: str = "localhost"
+    port: int = 5672
+
+    model_config = SettingsConfigDict(env_prefix="RABBITMQ_")
+
+    @property
+    def url(self) -> str:
+        return ...
+
+
 class Settings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     minio: MinioSettings = MinioSettings()
+    rabbitmq: RabbitMQSettings = RabbitMQSettings()
 
 
 settings: Final[Settings] = Settings()
