@@ -13,17 +13,17 @@ from modules.shared_kernel.application.exceptions import (
     UpdateError,
 )
 
-from ...application import AudioCollectionRepository, AudioCollectionUpdate
+from ...application import CollectionRepository, CollectionUpdate
 from ...domain import (
     AudioCollection,
-    AudioCollectionStatus,
     AudioFileMetadata,
     AudioRecord,
+    CollectionStatus,
 )
 from .models import AudioCollectionModel, AudioRecordModel
 
 
-class SQLAudioCollectionRepository(AudioCollectionRepository):
+class SQLCollectionRepository(CollectionRepository):
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
@@ -33,7 +33,7 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
             id=model.id,
             user_id=model.user_id,
             topic=model.topic,
-            status=AudioCollectionStatus(model.status),
+            status=CollectionStatus(model.status),
             record_count=model.record_count,
             created_at=model.created_at,
             records=[
@@ -94,7 +94,7 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
                 entity_name=AudioCollection.__name__, entity_id=id, original_error=e
             ) from e
 
-    async def update(self, id: UUID, **kwargs: AudioCollectionUpdate) -> AudioCollection | None:  # noqa: A002
+    async def update(self, id: UUID, **kwargs: CollectionUpdate) -> AudioCollection | None:  # noqa: A002
         try:
             stmt = (
                 update(AudioCollectionModel)
@@ -158,3 +158,28 @@ class SQLAudioCollectionRepository(AudioCollectionRepository):
         except SQLAlchemyError as e:
             await self.session.rollback()
             raise CreationError(entity_name=AudioRecord.__name__, original_error=e) from e
+
+    async def get_record(self, collection_id: UUID, record_id: UUID) -> AudioRecord | None:
+        try:
+            stmt = (
+                select(AudioRecordModel)
+                .where(
+                    (AudioRecordModel.collection_id == collection_id) &
+                    (AudioRecordModel.id == record_id)
+                )
+            )
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
+            if model is None:
+                return None
+            return AudioRecord(
+                id=model.id,
+                collection_id=model.collection_id,
+                filepath=model.filepath,
+                metadata=AudioFileMetadata.model_validate(model.record_metadata),
+                created_at=model.created_at,
+            )
+        except SQLAlchemyError as e:
+            raise ReadingError(
+                entity_name=AudioRecord.__name__, entity_id=record_id, original_error=e
+            ) from e

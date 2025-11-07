@@ -1,22 +1,11 @@
+from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, PositiveInt
+from pydantic import PositiveFloat, PositiveInt
 
 from modules.shared_kernel.domain import Entity
 from modules.shared_kernel.file_managment import FileMetadata, Filepath
-
-
-class SpeechSegment(BaseModel):
-    """Распознанная часть речи"""
-    text: str
-    speaker: str | None = None
-    emotion: str | None = None
-
-
-class Transcription(BaseModel):
-    record_id: UUID
-    segments: list[SpeechSegment]
 
 
 class SummaryType(StrEnum):
@@ -25,7 +14,32 @@ class SummaryType(StrEnum):
     LECTURE_NOTES = "lecture_notes"  # Конспект лекции
 
 
+class SummaryFormat(StrEnum):
+    """Формат документа саммари"""
+    DOCX = "docx"
+    PDF = "pdf"
+    MD = "md"
+
+
+class TaskStatus(StrEnum):
+    """Статус задачи"""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    TRANSCRIBING = "transcribing"
+    SUMMARIZING = "summarizing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class SummarizationTask(Entity):
+    """Задача на суммаризацию"""
+    status: TaskStatus
+    waiting_time: PositiveFloat
+    updated_at: datetime
+
+
 class DocumentFileMetadata(FileMetadata):
+    """Мета-данные файлового документа"""
     page_count: PositiveInt
 
 
@@ -36,13 +50,13 @@ class Summary(Entity):
         collection_id: Аудио-коллекция к которой принадлежит суммаризация
         type: Тип саммари, например протокол совещания или конспект лекции
         title: Заголовок/название самари
-        text: Текст в формате Markdown
+        md_text: Текст в формате Markdown
         filepath: Путь до файла в хранилище (файл в формате pdf, docx, txt, ...)
         metadata: Мета-данные файла
     """
     collection_id: UUID
     type: SummaryType
     title: str
-    text: str
+    md_text: str
     filepath: Filepath
     metadata: DocumentFileMetadata

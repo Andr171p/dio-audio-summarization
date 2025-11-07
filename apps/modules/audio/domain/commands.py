@@ -6,13 +6,13 @@ from pydantic import BaseModel, Field, PositiveFloat, PositiveInt
 from modules.shared_kernel.utils import current_datetime
 
 
-class CreateAudioCollectionCommand(BaseModel):
+class CreateCollectionCommand(BaseModel):
     """Загрузка коллекции аудио-файлов"""
     user_id: UUID
     topic: str = Field(default="")
 
 
-class AddAudioRecordCommand(BaseModel):
+class AddRecordCommand(BaseModel):
     """Добавление аудио записи в коллекцию"""
     user_id: UUID
     collection_id: UUID

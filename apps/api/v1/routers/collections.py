@@ -1,24 +1,25 @@
+from collections.abc import AsyncIterable
 from uuid import UUID, uuid4
 
 from dishka.integrations.fastapi import DishkaRoute
 from dishka.integrations.fastapi import FromDishka as Depends
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 
 from modules.audio.application import (
-    AddAudioRecordUseCase,
-    CreateAudioCollectionUseCase,
-    SummarizeAudioCollectionUseCase,
+    CollectionRepository,
+    CreateCollectionUseCase,
+    UploadRecordUseCase,
 )
 from modules.audio.domain import (
-    AddAudioRecordCommand,
+    AddRecordCommand,
     AudioCollection,
     AudioRecord,
-    CreateAudioCollectionCommand,
-    SummarizeAudioCollectionCommand,
-    SummarizingState,
+    CreateCollectionCommand,
 )
+from modules.shared_kernel.application import Storage
 
-from ..schemas import AudioMetadataHeaders
+from ..schemas import AudioMetadataHeaders, ChunkSize
 
 router = APIRouter(prefix="/collections", tags=["Audio collections"], route_class=DishkaRoute)
 
@@ -30,7 +31,7 @@ router = APIRouter(prefix="/collections", tags=["Audio collections"], route_clas
     summary=""
 )
 async def create_collection(
-        command: CreateAudioCollectionCommand, usecase: Depends[CreateAudioCollectionUseCase]
+        command: CreateCollectionCommand, usecase: Depends[CreateCollectionUseCase]
 ) -> AudioCollection:
     return await usecase.execute(command)
 
@@ -54,22 +55,6 @@ async def get_collection(collection_id: UUID) -> AudioCollection: ...
 
 
 @router.post(
-    path="/{collection_id}/summarize",
-    status_code=status.HTTP_202_ACCEPTED,
-    response_model=SummarizingState,
-    summary="Создание задачи на суммаризацию"
-)
-async def summarize_collection(
-        collection_id: UUID,
-        usecase: Depends[SummarizeAudioCollectionUseCase]
-) -> SummarizingState:
-    command = SummarizeAudioCollectionCommand(
-        collection_id=collection_id, summary_type=..., summary_format=...
-    )
-    return await usecase.execute(command)
-
-
-@router.post(
     path="/{collection_id}/records/upload",
     status_code=status.HTTP_201_CREATED,
     response_model=AudioRecord,
@@ -78,10 +63,10 @@ async def summarize_collection(
 async def upload_record(
         collection_id: UUID,
         request: Request,
-        usecase: Depends[AddAudioRecordUseCase]
+        usecase: Depends[UploadRecordUseCase]
 ) -> AudioRecord:
     headers = AudioMetadataHeaders.model_validate(request.headers)
-    command = AddAudioRecordCommand(
+    command = AddRecordCommand(
         user_id=uuid4(),
         collection_id=collection_id,
         filename=headers.filename,
@@ -101,3 +86,38 @@ async def upload_record(
     summary="Получение аудио записи из коллекции"
 )
 async def get_record(collection_id: UUID, record_id: UUID) -> AudioRecord: ...
+
+
+@router.get(
+    path="/{collection_id}/records/{record_id}/download",
+    status_code=status.HTTP_200_OK,
+    response_model=StreamingResponse,
+    summary="Скачивание аудио записи",
+)
+async def download_record(
+        collection_id: UUID,
+        record_id: UUID,
+        chunk_size: ChunkSize,
+        repository: Depends[CollectionRepository],
+        storage: Depends[Storage]
+) -> StreamingResponse:
+    record = await repository.get_record(collection_id, record_id)
+    if record is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Record not found"
+        )
+
+    async def generate_content() -> AsyncIterable[bytes]:
+        async for file_part in storage.download_multipart(
+                record.filepath, part_size=chunk_size
+        ):
+            yield file_part.content
+
+    return StreamingResponse(
+        content=generate_content(),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{record.metadata.filename}"',
+            "Content-Type": "audio/mpeg",
+        }
+    )

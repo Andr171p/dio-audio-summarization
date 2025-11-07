@@ -1,14 +1,10 @@
 __all__ = (
-    "AddAudioRecordUseCase",
-    "AudioCollectionRepository",
-    "AudioCollectionUpdate",
-    "CreateAudioCollectionUseCase",
-    "SummarizeAudioCollectionUseCase",
+    "CollectionRepository",
+    "CollectionUpdate",
+    "CreateCollectionUseCase",
+    "DownloadRecordUseCase",
+    "UploadRecordUseCase",
 )
 
-from .repository import AudioCollectionRepository, AudioCollectionUpdate
-from .usecases import (
-    AddAudioRecordUseCase,
-    CreateAudioCollectionUseCase,
-    SummarizeAudioCollectionUseCase,
-)
+from .repository import CollectionRepository, CollectionUpdate
+from .usecases import CreateCollectionUseCase, DownloadRecordUseCase, UploadRecordUseCase

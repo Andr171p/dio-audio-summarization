@@ -4,19 +4,22 @@ from uuid import UUID
 
 from modules.shared_kernel.application import CRUDRepository
 
-from ..domain import AudioCollection, AudioCollectionStatus, AudioRecord
+from ..domain import AudioCollection, AudioRecord, CollectionStatus
 
 
-class AudioCollectionUpdate(TypedDict):
+class CollectionUpdate(TypedDict):
     topic: NotRequired[str]
-    status: NotRequired[AudioCollectionStatus]
+    status: NotRequired[CollectionStatus]
 
 
-class AudioCollectionRepository(CRUDRepository[AudioCollection]):
-    async def update(self, id: UUID, **kwargs: AudioCollectionUpdate) -> AudioCollection: ...  # noqa: A002
+class CollectionRepository(CRUDRepository[AudioCollection]):
+    async def update(self, id: UUID, **kwargs: CollectionUpdate) -> AudioCollection: ...  # noqa: A002
 
     async def get_by_user(
             self, user_id: UUID, page: int, limit: int
     ) -> list[AudioCollection]: ...
 
     async def add_record(self, record: AudioRecord) -> AudioRecord: ...
+
+    async def get_record(self, collection_id: UUID, record_id: UUID) -> AudioRecord | None:
+        """Два аргумента для проверки принадлежности"""

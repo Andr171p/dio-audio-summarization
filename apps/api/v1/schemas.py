@@ -1,7 +1,9 @@
-from typing import Self
+from typing import Annotated, Self
 
-from fastapi import Request
+from fastapi import Query, Request
 from pydantic import BaseModel, ConfigDict, PositiveFloat, PositiveInt
+
+ChunkSize = Annotated[PositiveInt, Query(...)]
 
 
 class AudioMetadataHeaders(BaseModel):

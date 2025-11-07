@@ -12,12 +12,8 @@ from modules.shared_kernel.domain import AggregateRoot, Entity
 from modules.shared_kernel.file_managment import FileMetadata, FilePart, Filepath, FileType
 from modules.shared_kernel.utils import current_datetime
 
-from .commands import (
-    AddAudioRecordCommand,
-    CreateAudioCollectionCommand,
-    SummarizeAudioCollectionCommand,
-)
-from .events import AudioCollectionSummarizationStartedEvent, AudioRecordAddedEvent
+from .commands import AddRecordCommand, CreateCollectionCommand
+from .events import RecordAddedEvent
 
 MIN_PART_SIZE = 5 * 1024 * 1024
 
@@ -32,22 +28,11 @@ class SegmentTimecode(BaseModel):
         return self.end_time - self.start_time
 
 
-class AudioCollectionStatus(StrEnum):
+class CollectionStatus(StrEnum):
     """Статус аудио коллекции"""
     NEW = "new"
     UPLOADED = "uploaded"
-    PROCESSING = "processing"
-    CONVERTED = "converted"
-    TRANSCRIBED = "transcribed"
-    SUMMARIZED = "summarized"
-    ERROR = "error"
-
-
-class SummarizingState(BaseModel):
-    collection_id: UUID
-    records_summarizing: list[UUID]
-    status: AudioCollectionStatus
-    approximate_waiting_time: PositiveInt
+    FROZEN = "frozen"
 
 
 class AudioFileMetadata(FileMetadata):
@@ -124,22 +109,22 @@ class AudioCollection(AggregateRoot):
     """
     user_id: UUID
     topic: str
-    status: AudioCollectionStatus
+    status: CollectionStatus
     record_count: NonNegativeInt = Field(default=0)
     records: list[AudioRecord] = Field(default_factory=list)
 
-    def _set_status(self, new_status: AudioCollectionStatus) -> None:
+    def _set_status(self, new_status: CollectionStatus) -> None:
         """Установка нового статуса"""
         self.status = new_status
 
     @classmethod
-    def create(cls, command: CreateAudioCollectionCommand) -> Self:
+    def create(cls, command: CreateCollectionCommand) -> Self:
         """Создание коллекции"""
         return cls(
-            user_id=command.user_id, topic=command.topic, status=AudioCollectionStatus.NEW
+            user_id=command.user_id, topic=command.topic, status=CollectionStatus.NEW
         )
 
-    def add_record(self, command: AddAudioRecordCommand) -> AudioRecord:
+    def add_record(self, command: AddRecordCommand) -> AudioRecord:
         """Добавление аудио записи в коллекцию"""
         record_id, created_at = uuid4(), current_datetime()
         filepath = self._build_record_filepath(
@@ -167,28 +152,11 @@ class AudioCollection(AggregateRoot):
         )
         self.records.append(record)
         self.record_count += 1
-        self._set_status(AudioCollectionStatus.UPLOADED)
-        self._register_event(AudioRecordAddedEvent(
+        self._set_status(CollectionStatus.UPLOADED)
+        self._register_event(RecordAddedEvent(
             collection_id=self.id, record_id=record_id, filepath=filepath
         ))
         return record
-
-    def summarize(self, command: SummarizeAudioCollectionCommand) -> SummarizingState:
-        waiting_time = self._calculate_approximate_summarization_time()
-        self._register_event(AudioCollectionSummarizationStartedEvent(
-            collection_id=self.id,
-            collection_duration=sum(record.metadata.duration for record in self.records),
-            record_filepaths=[record.filepath for record in self.records],
-            summary_type=command.summary_type,
-            summary_format=command.summary_format,
-        ))
-        self._set_status(AudioCollectionStatus.PROCESSING)
-        return SummarizingState(
-            collection_id=self.id,
-            records_summarizing=[record.id for record in self.records],
-            status=self.status,
-            approximate_waiting_time=waiting_time,
-        )
 
     @staticmethod
     def _build_record_filepath(
@@ -200,7 +168,3 @@ class AudioCollection(AggregateRoot):
     ) -> Filepath:
         """Создание системного пути до файла с аудио записью"""
         return Filepath(f"audio/{user_id}/{collection_id}/{record_id}_{created_at}.{format}")
-
-    def calculate_approximate_summarization_time(self) -> int:
-        """Вычисление приблизительного времени суммаризации"""
-        return sum(record.metadata.duration for record in self.records) // 5

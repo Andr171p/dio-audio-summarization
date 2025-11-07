@@ -1,36 +1,35 @@
 from collections.abc import AsyncIterable
 
 from modules.shared_kernel.application import EventBus, Storage
+from modules.shared_kernel.file_managment import FilePart
 
 from ..domain import (
-    AddAudioRecordCommand,
+    AddRecordCommand,
     AudioCollection,
-    AudioCollectionStatus,
     AudioRecord,
-    CreateAudioCollectionCommand,
-    SummarizeAudioCollectionCommand,
-    SummarizingState,
+    CreateCollectionCommand,
+    DownloadRecordQuery,
 )
 from .exceptions import AudioCollectionNotFoundError
-from .repository import AudioCollectionRepository
+from .repository import CollectionRepository
 
 
-class CreateAudioCollectionUseCase:
+class CreateCollectionUseCase:
     """Создание аудио коллекции"""
-    def __init__(self, repository: AudioCollectionRepository) -> None:
+    def __init__(self, repository: CollectionRepository) -> None:
         self.repository = repository
 
-    async def execute(self, command: CreateAudioCollectionCommand) -> AudioCollection:
+    async def execute(self, command: CreateCollectionCommand) -> AudioCollection:
         collection = AudioCollection.create(command)
         return await self.repository.create(collection)
 
 
-class AddAudioRecordUseCase:
+class UploadRecordUseCase:
     """Загрузка аудио записи в коллекцию"""
 
     def __init__(
             self,
-            repository: AudioCollectionRepository,
+            repository: CollectionRepository,
             storage: Storage,
             eventbus: EventBus
     ) -> None:
@@ -39,7 +38,7 @@ class AddAudioRecordUseCase:
         self.eventbus = eventbus
 
     async def execute(
-            self, stream: AsyncIterable[bytes], command: AddAudioRecordCommand
+            self, stream: AsyncIterable[bytes], command: AddRecordCommand
     ) -> AudioRecord:
         collection = await self.repository.read(command.collection_id)
         if collection is None:
@@ -54,23 +53,14 @@ class AddAudioRecordUseCase:
         return added_record
 
 
-class SummarizeAudioCollectionUseCase:
-    def __init__(
-            self, repository: AudioCollectionRepository, eventbus: EventBus
-    ) -> None:
+class DownloadRecordUseCase:
+    def __init__(self, repository: CollectionRepository, storage: Storage) -> None:
         self.repository = repository
-        self.eventbus = eventbus
+        self.storage = storage
 
-    async def execute(self, command: SummarizeAudioCollectionCommand) -> SummarizingState:
-        collection = await self.repository.read(command.collection_id)
-        if collection is None:
-            raise AudioCollectionNotFoundError(
-                command.collection_id, details={"collection_id": command.collection_id}
-            )
-        summarizing_state = collection.summarize(command)
-        for event in collection.collect_events():
-            await self.eventbus.publish(event)
-        await self.repository.update(
-            command.collection_id, {"status": AudioCollectionStatus.PROCESSING}
-        )
-        return summarizing_state
+    async def execute(self, query: DownloadRecordQuery) -> AsyncIterable[FilePart]:
+        record = await self.repository.get_record(query.collection_id, query.record_id)
+        async for file_part in await self.storage.download_multipart(
+                record.filepath, part_size=query.chunk_size
+        ):
+            yield file_part
