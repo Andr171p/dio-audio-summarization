@@ -21,5 +21,4 @@ class CollectionRepository(CRUDRepository[AudioCollection]):
 
     async def add_record(self, record: AudioRecord) -> AudioRecord: ...
 
-    async def get_record(self, collection_id: UUID, record_id: UUID) -> AudioRecord | None:
-        """Два аргумента для проверки принадлежности"""
+    async def get_record(self, record_id: UUID) -> AudioRecord | None: ...

@@ -12,19 +12,6 @@ from ..utils import current_datetime
 class Event(BaseModel, ABC):
     """Базовая модель доменного события.
 
-    Пример использования:
-
-    >>> from typing import ClassVar
-    >>>
-    >>> from modules.shared_kernel.domain import Event
-    >>>
-    >>>
-    >>> class MyEvent(Event):
-    >>>    event_type: ClassVar[str] = "my_event"
-    >>>
-    >>>    foo: int
-    >>>    bar: float
-
     Attributes:
         event_id: Уникальный идентификатор события
         event_version: Версия события

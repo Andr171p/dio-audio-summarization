@@ -23,10 +23,3 @@ class AddRecordCommand(BaseModel):
     channels: PositiveInt | None = None
     bitrate: PositiveInt | None = None
     created_at: datetime = Field(default_factory=current_datetime)
-
-
-class SummarizeAudioCollectionCommand(BaseModel):
-    """Суммаризовать аудио коллекцию"""
-    collection_id: UUID
-    summary_type: str
-    summary_format: str

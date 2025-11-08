@@ -159,15 +159,9 @@ class SQLCollectionRepository(CollectionRepository):
             await self.session.rollback()
             raise CreationError(entity_name=AudioRecord.__name__, original_error=e) from e
 
-    async def get_record(self, collection_id: UUID, record_id: UUID) -> AudioRecord | None:
+    async def get_record(self, record_id: UUID) -> AudioRecord | None:
         try:
-            stmt = (
-                select(AudioRecordModel)
-                .where(
-                    (AudioRecordModel.collection_id == collection_id) &
-                    (AudioRecordModel.id == record_id)
-                )
-            )
+            stmt = select(AudioRecordModel).where(AudioRecordModel.id == record_id)
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
             if model is None:

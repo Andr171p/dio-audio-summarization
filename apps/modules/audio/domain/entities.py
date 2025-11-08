@@ -1,12 +1,11 @@
 from typing import Self
 
-import math
 from collections.abc import AsyncIterable
 from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, NonNegativeInt, PositiveFloat, PositiveInt, computed_field
+from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt
 
 from modules.shared_kernel.domain import AggregateRoot, Entity
 from modules.shared_kernel.file_managment import FileMetadata, FilePart, Filepath, FileType
@@ -16,16 +15,6 @@ from .commands import AddRecordCommand, CreateCollectionCommand
 from .events import RecordAddedEvent
 
 MIN_PART_SIZE = 5 * 1024 * 1024
-
-
-class SegmentTimecode(BaseModel):
-    """Таим-код сегмента"""
-    start_time: float
-    end_time: float
-
-    @computed_field(description="Продолжительность аудио сегмента")
-    def duration(self) -> float:
-        return self.end_time - self.start_time
 
 
 class CollectionStatus(StrEnum):
@@ -81,20 +70,6 @@ class AudioRecord(Entity):
                 part_number=part_number,
             )
 
-    def compute_segment_timecodes(self, segment_duration: float) -> list[SegmentTimecode]:
-        """Расчёт тайм-кодов для разбиения по сегментам сегментов
-
-        :param segment_duration: Продолжительность сегмента в секундах.
-        """
-        segment_count = math.ceil(self.metadata.duration / segment_duration)
-        return [
-            SegmentTimecode(
-                start_time=segment_index * segment_duration,
-                end_time=min((segment_index + 1) * segment_duration, self.metadata.duration),
-            )
-            for segment_index in range(segment_count)
-        ]
-
 
 class AudioCollection(AggregateRoot):
     """Коллекция с аудио-записями пользователя. Агрегирует и предоставляет доступ
@@ -112,10 +87,6 @@ class AudioCollection(AggregateRoot):
     status: CollectionStatus
     record_count: NonNegativeInt = Field(default=0)
     records: list[AudioRecord] = Field(default_factory=list)
-
-    def _set_status(self, new_status: CollectionStatus) -> None:
-        """Установка нового статуса"""
-        self.status = new_status
 
     @classmethod
     def create(cls, command: CreateCollectionCommand) -> Self:

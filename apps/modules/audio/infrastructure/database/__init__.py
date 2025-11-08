@@ -1,8 +1,8 @@
 __all__ = (
     "AudioCollectionModel",
     "AudioRecordModel",
-    "SQLAudioCollectionRepository",
+    "SQLCollectionRepository",
 )
 
 from .models import AudioCollectionModel, AudioRecordModel
-from .repository import SQLAudioCollectionRepository
+from .repository import SQLCollectionRepository

@@ -9,14 +9,9 @@ __all__ = (
     "DownloadRecordQuery",
     "RecordAddedEvent",
     "RecordAddedEvent",
-    "SummarizeAudioCollectionCommand",
 )
 
-from .commands import (
-    AddRecordCommand,
-    CreateCollectionCommand,
-    SummarizeAudioCollectionCommand,
-)
+from .commands import AddRecordCommand, CreateCollectionCommand
 from .entities import (
     AudioCollection,
     AudioFileMetadata,

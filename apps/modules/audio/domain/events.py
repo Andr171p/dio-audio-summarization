@@ -2,8 +2,6 @@ from typing import ClassVar
 
 from uuid import UUID
 
-from pydantic import PositiveFloat
-
 from modules.shared_kernel.domain import Event
 from modules.shared_kernel.file_managment import Filepath
 

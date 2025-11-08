@@ -80,37 +80,34 @@ async def upload_record(
 
 
 @router.get(
-    path="/{collection_id}/records/{record_id}",
+    path="/records/{record_id}",
     status_code=status.HTTP_200_OK,
     response_model=AudioRecord,
     summary="Получение аудио записи из коллекции"
 )
-async def get_record(collection_id: UUID, record_id: UUID) -> AudioRecord: ...
+async def get_record(record_id: UUID) -> AudioRecord: ...
 
 
 @router.get(
-    path="/{collection_id}/records/{record_id}/download",
+    path="/records/{record_id}/download",
     status_code=status.HTTP_200_OK,
     response_model=StreamingResponse,
     summary="Скачивание аудио записи",
 )
 async def download_record(
-        collection_id: UUID,
         record_id: UUID,
         chunk_size: ChunkSize,
         repository: Depends[CollectionRepository],
         storage: Depends[Storage]
 ) -> StreamingResponse:
-    record = await repository.get_record(collection_id, record_id)
+    record = await repository.get_record(record_id)
     if record is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Record not found"
         )
 
     async def generate_content() -> AsyncIterable[bytes]:
-        async for file_part in storage.download_multipart(
-                record.filepath, part_size=chunk_size
-        ):
+        async for file_part in storage.download_multipart(record.filepath, part_size=chunk_size):
             yield file_part.content
 
     return StreamingResponse(

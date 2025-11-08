@@ -1,5 +1,5 @@
+_base_url: str | None = None
 
 
-class AppClient:
-    def __init__(self, base_url: str) -> None:
-        ...
+def connect(base_url: str) -> None:
+    _base_url = base_url
