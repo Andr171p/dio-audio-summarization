@@ -8,7 +8,9 @@ from faststream.rabbit import RabbitBroker
 
 from client import ClientV1
 from config.dev import settings as dev_settings
-from modules.orchestration.domain.commands import SplitAudioCommand
+from modules.orchestration.domain.commands import ProcessAudioCommand
+from modules.orchestration.domain.entities import AudioChunk
+from modules.orchestration.domain.events import AudioPrecessedEvent
 
 logger = logging.getLogger(__name__)
 
@@ -100,25 +102,48 @@ async def split_on_chunks(  # noqa: C901, PLR0915
             except TimeoutError:
                 logger.warning("Timeout waiting for feed_ffmpeg to complete")
             returned_code = await process.wait()
-            if returned_code != 0:
-                stderr_message = ""
-                if process.stderr:
-                    stderr_message = await process.stderr.read()
-                    stderr_message = stderr_message.decode("utf-8", errors="ignore")
-                    logger.error(
-                        "FFmpeg process finished with exit code %s, error: %s",
-                        returned_code, stderr_message,
-                    )
-                    raise subprocess.CalledProcessError(
-                        returned_code, ffmpeg_command, stderr=stderr_message
-                    )
+            if returned_code != 0 and process.stderr:
+                stderr_message = await process.stderr.read()
+                stderr_message = stderr_message.decode("utf-8", errors="ignore")
+                logger.error(
+                    "FFmpeg process finished with exit code %s, error: %s",
+                    returned_code, stderr_message,
+                )
+                raise subprocess.CalledProcessError(
+                    returned_code, ffmpeg_command, stderr=stderr_message
+                )
         except asyncio.CancelledError:
             feed_task.cancel()
     except BrokenPipeError:
         logger.exception("Broken pipe error in split_on_chunks")
 
 
-@broker.subscriber("audio_splitting")
-@broker.publisher("audio_conversion")
-async def handle_audio_splitting(command: SplitAudioCommand, logger: Logger) -> ...:
-    ...
+@broker.subscriber("audio_processing")
+@broker.publisher("audio_processing")
+async def handle_audio_processing(command: ProcessAudioCommand, logger: Logger) -> ...:
+    collection = await client.collections.get(command.collection_id)
+    chunk_count = 1
+    for record in collection.records:
+        file_stream = client.collections.download_record(record.id, chunk_size=CHUNK_SIZE)
+        chunks = split_on_chunks(
+            file_stream,
+            chunk_duration=command.chunk_duration,
+            input_format=record.metadata.format,
+            output_format="wav",
+            samplerate=record.metadata.samplerate,
+            bitrate=record.metadata.bitrate,
+        )
+        async for chunk in chunks:
+            audio_chunk = AudioChunk(
+                collection_id=collection.id,
+                record_id=record.id,
+                filename=...,
+                format="wav",
+                chunk_number=chunk_count,
+                chunk_duration=...,
+                chunk_size=len(chunk),
+                content=chunk,
+            )
+            yield audio_chunk
+            chunk_count += 1
+    yield AudioPrecessedEvent(collection_id=collection.id, chunk_count=chunk_count)

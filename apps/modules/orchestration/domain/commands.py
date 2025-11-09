@@ -1,18 +1,18 @@
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PositiveFloat
+
+from .entities import AudioChunk
 
 
-class SplitAudioCommand(BaseModel):
+class ProcessAudioCommand(BaseModel):
     collection_id: UUID
-
-
-class ConvertAudioCommand(BaseModel):
-    ...
+    output_format: str
+    chunk_duration: PositiveFloat
 
 
 class EnhanceSoundQualityCommand(BaseModel):
-    ...
+    audio_chunk: AudioChunk
 
 
 class TranscribeAudioCommand(BaseModel):
