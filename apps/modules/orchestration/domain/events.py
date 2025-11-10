@@ -2,16 +2,40 @@ from typing import ClassVar
 
 from uuid import UUID
 
-from pydantic import PositiveInt
+from pydantic import PositiveFloat, PositiveInt
 
 from modules.shared_kernel.domain import Event
 
 
-class AudioPrecessedEvent(Event):
-    event_type: ClassVar[str] = "audio_processed"
+class AudioProcessingStatedEvent(Event):
+    event_type: ClassVar[str] = "audio_processing_stated"
+
+    chunk_count: PositiveInt
+
+
+class ChunkPrecessedEvent(Event):
+    event_type: ClassVar[str] = "chunk_processed"
 
     collection_id: UUID
-    chunk_count: PositiveInt
+    record_id: UUID
+    audio_format: str
+    samplerate: PositiveInt | None = None
+    bitrate: PositiveInt | None = None
+    chunk_content: bytes
+    chunk_number: PositiveInt
+    chunk_size: PositiveFloat
+    chunk_duration: PositiveFloat
+
+
+class SoundQualityEnhancedEvent(Event):
+    event_type: ClassVar[str] = "sound_quality_enhanced"
+
+    collection_id: UUID
+    record_id: UUID
+    chunk_number: PositiveInt
+    chunk_content: bytes
+    audio_format: str
+    samplerate: PositiveFloat
 
 
 class AudioTranscribedEvent(Event):
@@ -19,5 +43,8 @@ class AudioTranscribedEvent(Event):
 
     collection_id: UUID
     record_id: UUID
-    chunk_number: PositiveInt
-    transcription: str
+    transcription: dict[str, str]
+
+
+class TranscriptionSummarizedEvent(Event):
+    event_type: ClassVar[str] = "transcription_summarized"
