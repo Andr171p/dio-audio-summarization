@@ -6,6 +6,7 @@ import re
 from collections.abc import AsyncIterable, AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from uuid import UUID
 
 import aiofiles
 
@@ -30,8 +31,14 @@ class AudioSplitter:
             self,
             chunk_duration: int,
             chunk_format: str = "wav",
-            prefix: str = "",
+            prefix: str | UUID | float = "",
     ) -> None:
+        """
+        :param chunk_duration: Продолжительность чанка в секундах.
+        :param chunk_format: Формат чанка на выходе, например: 'wav', 'mp3', ...
+        :param prefix: Уникальный префикс для избежания коллизий и конфликтов данных.
+        (Строго рекомендуется к заполнению, пример: uuid, timestamp, hash, ...)
+        """
         self._chunk_duration = chunk_duration
         self._chunk_format = chunk_format
         self._prefix = prefix
@@ -121,6 +128,11 @@ class AudioSplitter:
     async def split_stream(
             self, stream: AsyncIterable[bytes]
     ) -> AsyncIterator[tuple[bytes, float]]:
+        """Потоковое разделение аудио на чанки с переконвертацией.
+
+        :param stream: Поток байтов аудио записи.
+        :returns: Байты чанка + фактическая продолжительность чанка.
+        """
         input_file = await self._write_file(stream)
         async with self._ffmpeg_pipe(input_file, self._ffmpeg_output_pattern) as process:
             _, stderr = await process.communicate()
