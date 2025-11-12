@@ -18,11 +18,10 @@ class ChunkPrecessedEvent(Event):
 
     collection_id: UUID
     record_id: UUID
-    audio_format: str
-    samplerate: PositiveInt | None = None
-    bitrate: PositiveInt | None = None
-    chunk_content: bytes
     chunk_number: PositiveInt
+    chunks_count: PositiveInt
+    chunk_format: str
+    chunk_content: bytes
     chunk_size: PositiveFloat
     chunk_duration: PositiveFloat
 

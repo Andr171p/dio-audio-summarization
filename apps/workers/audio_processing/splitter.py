@@ -1,3 +1,5 @@
+from typing import Any
+
 import asyncio
 import glob
 import logging
@@ -9,8 +11,19 @@ from pathlib import Path
 from uuid import UUID
 
 import aiofiles
+from pydantic import BaseModel, Field, PositiveInt
 
 logger = logging.getLogger(__name__)
+
+
+class AudioChunk(BaseModel):
+    number: PositiveInt
+    total_count: PositiveInt
+    content: bytes
+    duration: PositiveInt
+    format: str
+    size: PositiveInt
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class AudioSplitter:
@@ -110,27 +123,37 @@ class AudioSplitter:
                     process.kill()
                     await process.wait()
 
-    async def _read_chunks(self) -> AsyncIterator[tuple[bytes, int]]:
+    async def _iter_chunks(self, metadata: dict[str, Any]) -> AsyncIterator[AudioChunk]:
         files = sorted(
             glob.glob(self._ffmpeg_output_pattern.replace("%03d", "*")),
-            key=lambda x: int(re.search(r"_(\d+)\.wav$", x).group(1))
+            key=lambda x: int(re.search(rf"_(\d+)\.{self._prefix}$", x).group(1))
         )
-        for filepath in files:
+        total_count = len(files)
+        for number, filepath in enumerate(files):
             duration = await self._probe_duration(Path(filepath))
             async with aiofiles.open(filepath, mode="rb") as file:
                 content = await file.read()
-            yield content, duration
+            yield AudioChunk(
+                number=number + 1,
+                total_count=total_count,
+                content=content,
+                duration=duration,
+                format=filepath.split(".")[-1],
+                size=len(content),
+                metadata=metadata.copy(),
+            )
             try:
                 os.unlink(filepath)
             except (PermissionError, OSError):
                 logger.exception("Error occurred while unlinking file %s", filepath)
 
     async def split_stream(
-            self, stream: AsyncIterable[bytes]
-    ) -> AsyncIterator[tuple[bytes, float]]:
+            self, stream: AsyncIterable[bytes], metadata: dict[str, Any]
+    ) -> AsyncIterator[AudioChunk]:
         """Потоковое разделение аудио на чанки с переконвертацией.
 
         :param stream: Поток байтов аудио записи.
+        :param metadata: Дополнительные данные, которые нужно передать в контекст чанков.
         :returns: Байты чанка + фактическая продолжительность чанка.
         """
         input_file = await self._write_file(stream)
@@ -140,6 +163,6 @@ class AudioSplitter:
                 error_message = stderr.decode()
                 logger.error("FFmpeg process failed with error: %s", error_message)
                 raise RuntimeError(f"FFmpeg process failed with error: {error_message}")
-            async for chunk_content, chunk_duration in self._read_chunks():
-                yield chunk_content, chunk_duration
+            async for chunk in self._iter_chunks(metadata):
+                yield chunk
             os.unlink(input_file)
