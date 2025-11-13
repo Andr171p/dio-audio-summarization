@@ -3,7 +3,7 @@ from faststream.rabbit import RabbitBroker
 
 from client.v1 import ClientV1
 from config.dev import settings as dev_settings
-from modules.orchestration.domain.events import ChunkPrecessedEvent
+from modules.shared_kernel.audio import AudioFormat, AudioSegment
 from modules.summarization.domain import SummarizationTaskCreatedEvent
 
 from .splitter import AudioSplitter
@@ -29,25 +29,17 @@ def calculate_chunk_duration(total_duration: int, record_count: int) -> int:
 @broker.publisher("audio_processing")
 async def handle_process_audio_command(
         event: SummarizationTaskCreatedEvent, logger: Logger
-) -> ChunkPrecessedEvent:
+) -> AudioSegment:
     logger.debug("Start audio processing for collection with id %s", event.collection_id)
     collection = await client.collections.get(event.collection_id)
     chunk_duration = calculate_chunk_duration(collection.total_duration, collection.record_count)
     splitter = AudioSplitter(
-        chunk_duration=chunk_duration, chunk_format="wav", prefix=collection.id,
+        chunk_duration=chunk_duration, chunk_format=AudioFormat.WAV, prefix=collection.id,
     )
     for record in collection.records:
         stream = client.collections.download_record(record.id, chunk_size=CHUNK_SIZE)
-        async for chunk in splitter.split_stream(
+        async for audio_segment in splitter.split_stream(
                 stream, metadata={"collection_id": collection.id, "record_id": record.id}
         ):
-            yield ChunkPrecessedEvent(
-                collection_id=collection.id,
-                record_id=record.id,
-                chunk_number=chunk.number,
-                chunks_count=chunk.total_count,
-                chunk_format=chunk.format,
-                chunk_content=chunk.content,
-                chunk_duration=chunk.duration,
-                chunk_size=chunk.size,
-            )
+            yield audio_segment
+    await broker.publish(..., queue="audio_processing")

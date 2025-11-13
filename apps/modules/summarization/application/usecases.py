@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from modules.audio.application import CollectionRepository
 
-from modules.shared_kernel.application import EventBus
+from modules.shared_kernel.application import MessageBus
 
 from ..domain import SummarizationTask
 from ..domain.commands import CreateSummarizationTaskCommand
@@ -15,11 +15,11 @@ class CreateSummarizationTaskUseCase:
             self,
             task_repository: TaskRepository,
             collection_repository: "CollectionRepository",
-            eventbus: EventBus,
+            message_bus: MessageBus,
     ) -> None:
         self.task_repository = task_repository
         self.collection_repository = collection_repository
-        self.eventbus = eventbus
+        self.message_bus = message_bus
 
     async def execute(self, command: CreateSummarizationTaskCommand) -> SummarizationTask:
         collection = await self.collection_repository.read(command.collection_id)
@@ -31,5 +31,5 @@ class CreateSummarizationTaskUseCase:
         )
         created_task = await self.task_repository.create(task)
         for event in task.collect_events():
-            await self.eventbus.publish(event)
+            await self.message_bus.publish(event)
         return created_task

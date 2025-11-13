@@ -54,6 +54,9 @@ class SummarizationTask(AggregateRoot):
         ))
         return task
 
+    def update_status(self, new_status: TaskStatus) -> None:
+        self.status = new_status
+
 
 class Summary(Entity):
     """Суммаризация аудио

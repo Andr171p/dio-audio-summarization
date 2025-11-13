@@ -2,7 +2,7 @@ from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from modules.shared_kernel.application import Storage
-from modules.shared_kernel.application.eventbus import PrintEventBus
+from modules.shared_kernel.application.message_bus import PrintEventBus
 
 from ..application import (
     CollectionRepository,

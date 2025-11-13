@@ -1,11 +1,11 @@
 __all__ = (
     "CRUDRepository",
-    "EventBus",
+    "MessageBus",
     "ReadableRepository",
     "Storage",
     "WritableRepository",
 )
 
-from .eventbus import EventBus
+from .message_bus import MessageBus
 from .repositories import CRUDRepository, ReadableRepository, WritableRepository
 from .storage import Storage
