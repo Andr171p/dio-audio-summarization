@@ -1,44 +1,18 @@
-from typing import Literal
-
 import json
 import logging
 from uuid import UUID
 
 import requests
 
-from .constants import MIME_TYPES, AudioFormat
-from .exceptions import UploadingFileError
+from .constants import AUDIO_ENCODING_CONFIG, AudioEncoding, Language
+from .exceptions import DownloadingFileError, TaskFailedError, UploadingFileError
 from .models import SpeechRecognized, Task
 from .oauth import OAuthSberDevicesClient
 
 logger = logging.getLogger(__name__)
 
-# Salute-Speech базовый URL
+# Базовый URL для REST API Salute-Speech
 SALUTE_SPEECH_BASE_URL = "https://smartspeech.sber.ru/rest/v1"
-
-AudioEncoding = Literal["PCM_S16LE", "OPUS", "MP3", "FLAC", "ALAW", "MULAW"]
-AUDIO_ENCODING_MAP: dict[str, AudioEncoding] = {
-    # PCM форматы
-    "wav": "PCM_S16LE",
-    "pcm": "PCM_S16LE",
-    "wave": "PCM_S16LE",
-    # Opus форматы
-    "ogg": "OPUS",
-    "opus": "OPUS",
-    "webm": "OPUS",
-    "oga": "OPUS",
-    # MP3
-    "mp3": "MP3",
-    "mpeg": "MP3",
-    # FLAC
-    "flac": "FLAC",
-    # G.711 кодеков
-    "alaw": "ALAW",
-    "g711alaw": "ALAW",
-    "mulaw": "MULAW",
-    "g711mulaw": "MULAW",
-    "ulaw": "MULAW",  # альтернативное название для MULAW
-}
 
 
 class SaluteSpeechClient:
@@ -57,21 +31,42 @@ class SaluteSpeechClient:
         self._use_ssl = use_ssl
         self._oauth_client = OAuthSberDevicesClient(apikey=apikey, scope=scope, use_ssl=use_ssl)
 
-    def upload_file(self, file: bytes, audio_format: AudioFormat) -> UUID:
+    def upload_file(
+            self,
+            file: bytes,
+            audio_encoding: AudioEncoding,
+            channels: int = 1,
+            samplerate: int | None = None
+    ) -> UUID:
+        if samplerate is None:
+            samplerate = 16000
         url = f"{self._base_url}/data:upload"
         access_token = self._oauth_client.authenticate()
-        mime_type = MIME_TYPES.get(audio_format)
-        if mime_type is None:
+        config = AUDIO_ENCODING_CONFIG.get(audio_encoding)
+        if config is None:
             raise ValueError(
-                f"Unsupported audio format! Input format {audio_format},"
-                f"supported formats {...}"
+                f"Unsupported audio encoding format! Input format {audio_encoding},"
+                f"supported formats {", ".join(list(AUDIO_ENCODING_CONFIG.keys()))}"
             )
+        if channels > config["max_channels"]:
+            raise ValueError(
+                f"Format {audio_encoding} supports max {config['max_channels']} "
+                f"channels, but got {channels}"
+            )
+        if config["samplerate_range"] is not None:
+            min_samplerate, max_samplerate = config["samplerate_range"]
+            if not (min_samplerate < samplerate < max_samplerate):
+                raise ValueError(
+                    f"Format {audio_encoding} requires sample rate between "
+                    f"{min_samplerate} and {max_samplerate} Hz, but got {samplerate} Hz"
+                )
         headers = {
-            "Authorization": f"Bearer {access_token}", "Content-Type": mime_type,
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": config["content_type"].format(samplerate=samplerate),
         }
         try:
             with requests.Session() as session:
-                logger.debug("Start uploading file with format of audio %s", audio_format)
+                logger.debug("Start uploading file with format of audio %s", audio_encoding)
                 response = session.post(
                     url=url, headers=headers, data=file, verify=False, stream=True
                 )
@@ -85,14 +80,35 @@ class SaluteSpeechClient:
     def async_recognize(
             self,
             request_file_id: UUID,
-            audio_format: str,
+            audio_encoding: AudioEncoding,
             diarization: bool = True,
-            speaker_count: int = 1,
-            language: str = "ru-RU",
-            channels_count: int = 1,
+            max_speakers_count: int = 1,
+            language: Language = "ru-RU",
+            channels: int = 1,
             samplerate: int = 16000,
             words: list[str] | None = None,
+            enable_letters: bool = False,
+            eou_timeout: int = 1
     ) -> Task:
+        """Создание задачи на распознавание.
+
+        :param request_file_id: Идентификатор загруженного файла.
+        :param audio_encoding: Аудио-кодек.
+        :param diarization: Разделение по спикерам.
+        :param max_speakers_count: Максимальное число спикеров.
+        :param language: Язык для распознавания речи, доступные языки:
+             - ru-RU — русский
+             - en-US — английский
+             - kk-KZ — казахский
+             - ky-KG — киргизский
+             - uz-UZ — узбекский.
+        :param channels: Количество каналов аудио.
+        :param samplerate: Частота дискретизации аудио.
+        :param words: Список слов или фраз, распознавание которых мы хотим усилить.
+        :param enable_letters: Модель коротких фраз, улучшающая распознавание коротких слов.
+        :param eou_timeout: Настройка распознавания конца фразы (End of Utterance — eou).
+        :returns: Созданная задача со статусом 'NEW'.
+        """
         url = f"{SALUTE_SPEECH_BASE_URL}/speech/async_recognize"
         access_token = self._oauth_client.authenticate()
         headers = {
@@ -104,25 +120,26 @@ class SaluteSpeechClient:
         payload = {
             "options": {
                 "model": self._model,
-                "audio_encoding": AUDIO_ENCODING_MAP[audio_format],
+                "audio_encoding": audio_encoding,
                 "sample_rate": samplerate,
                 "language": language,
                 "enable_profanity_filter": self._profanity_check,
-                "channels_count": channels_count,
+                "channels_count": channels,
                 "speaker_separation_options": {
                     "enable": diarization,
                     "enable_only_main_speaker": False,
-                    "count": min(speaker_count, 10)
+                    "count": min(max_speakers_count, 10)
                     # Ограничение на максимальное количество спикеров
                 }
             },
+            # Убираем insight_models для одноканального аудио
             "request_file_id": request_file_id,
         }
         if words:
             payload["hints"] = {
                 "words": words,
-                "enable_letters": ...,
-                "eou_timeout": ...
+                "enable_letters": enable_letters,
+                "eou_timeout": eou_timeout
             }
         try:
             with requests.Session() as session:
@@ -132,8 +149,10 @@ class SaluteSpeechClient:
                 response.raise_for_status()
                 data = response.json()
             return Task.model_validate(data["result"])
-        except requests.exceptions.HTTPError:
-            ...
+        except requests.exceptions.HTTPError as e:
+            raise TaskFailedError(
+                f"Task creation failed with status {response.status_code} error: {e}"
+            ) from e
 
     def get_task_status(self, task_id: UUID) -> Task:
         url = f"{self._base_url}/task:get"
@@ -154,7 +173,7 @@ class SaluteSpeechClient:
                 data = response.json()
             return Task.model_validate(data["result"])
         except requests.exceptions.HTTPError:
-            ...
+            raise TaskFailedError("Task receiving failed") from None
 
     def download_file(self, response_file_id: UUID) -> list[SpeechRecognized]:
         url = f"{self._base_url}/data:download"
@@ -171,5 +190,7 @@ class SaluteSpeechClient:
                 data = response.text
             results = json.loads(data)
             return [SpeechRecognized.from_response(result) for result in results]
-        except requests.exceptions.HTTPError:
-            ...
+        except requests.exceptions.HTTPError as e:
+            raise DownloadingFileError(
+                f"Downloading failed with status {response.status_code} error: {e}"
+            ) from e
