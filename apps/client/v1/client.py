@@ -1,4 +1,4 @@
-from .v1 import CollectionsResource
+from .resources import CollectionsResource
 
 
 class ClientV1:

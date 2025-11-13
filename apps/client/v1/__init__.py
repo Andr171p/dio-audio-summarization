@@ -1,5 +1,8 @@
 __all__ = (
-    "CollectionsResource",
+    "ClientError",
+    "ClientV1",
+    "NotFoundError",
 )
 
-from .collections import CollectionsResource
+from .client import ClientV1
+from .exceptions import ClientError, NotFoundError

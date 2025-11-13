@@ -1,10 +1,11 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class Metadata(BaseModel):
+    """Мета-информация аудио записи"""
     filename: str
     filesize: float
     format: str
@@ -17,6 +18,7 @@ class Metadata(BaseModel):
 
 
 class Record(BaseModel):
+    """Аудио запись"""
     id: UUID
     collection_id: UUID
     filepath: str
@@ -24,6 +26,7 @@ class Record(BaseModel):
 
 
 class Collection(BaseModel):
+    """Аудио коллекция, основой агрегат аудио записей"""
     id: UUID
     user_id: UUID
     topic: str
@@ -31,3 +34,5 @@ class Collection(BaseModel):
     record_count: int
     records: list[Record]
     created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, frozen=True)
