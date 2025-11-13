@@ -106,12 +106,13 @@ async def download_record(
             status_code=status.HTTP_404_NOT_FOUND, detail="Record not found"
         )
 
-    async def generate_content() -> AsyncIterable[bytes]:
-        async for file_part in storage.download_multipart(record.filepath, part_size=chunk_size):
+    async def content_generator() -> AsyncIterable[bytes]:
+        file_parts = storage.download_multipart(record.filepath, part_size=chunk_size)
+        async for file_part in file_parts:
             yield file_part.content
 
     return StreamingResponse(
-        content=generate_content(),
+        content=content_generator(),
         media_type="application/octet-stream",
         headers={
             "Content-Disposition": f'attachment; filename="{record.metadata.filename}"',

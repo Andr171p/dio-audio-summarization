@@ -5,7 +5,7 @@ from uuid import UUID
 import aiohttp
 
 from ..exceptions import NOT_FOUND_STATUS, ClientError, NotFoundError
-from ..schemas import Collection, Record
+from ..models import Collection, Record
 
 logger = logging.getLogger(__name__)
 

@@ -45,7 +45,19 @@ class RabbitMQSettings(BaseSettings):
         return ...
 
 
+class AppSettings(BaseSettings):
+    port: int = 8000
+    host: str = "localhost"
+    title: str = "<TITLE>"
+    version: str = "0.1.0"
+
+    @property
+    def url(self) -> str:
+        return f"http://{self.host}:{self.port}"
+
+
 class Settings(BaseSettings):
+    app: AppSettings = AppSettings()
     postgres: PostgresSettings = PostgresSettings()
     minio: MinioSettings = MinioSettings()
     rabbitmq: RabbitMQSettings = RabbitMQSettings()

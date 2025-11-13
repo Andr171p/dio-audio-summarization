@@ -42,7 +42,7 @@ class AudioTranscribedEvent(Event):
 
     collection_id: UUID
     record_id: UUID
-    transcription: dict[str, str]
+    transcriptions: list[dict[str, str]]
 
 
 class TranscriptionSummarizedEvent(Event):

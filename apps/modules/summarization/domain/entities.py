@@ -1,46 +1,58 @@
+from typing import Self
+
 from datetime import datetime
-from enum import StrEnum
 from uuid import UUID
 
-from pydantic import PositiveFloat, PositiveInt
+from pydantic import Field, PositiveInt
 
-from modules.shared_kernel.domain import Entity
-from modules.shared_kernel.file_managment import FileMetadata, Filepath
+from modules.shared_kernel.domain import AggregateRoot, Entity
+from modules.shared_kernel.file_managment import Filepath
+from modules.shared_kernel.utils import current_datetime
 
-
-class SummaryType(StrEnum):
-    """Типы суммаризации"""
-    MEETING_PROTOCOL = "meeting_protocol"  # Протокол совещания
-    LECTURE_NOTES = "lecture_notes"  # Конспект лекции
+from .events import SummarizationTaskCreatedEvent
+from .value_objects import DocumentFileMetadata, SummaryFormat, SummaryType, TaskStatus
 
 
-class SummaryFormat(StrEnum):
-    """Формат документа саммари"""
-    DOCX = "docx"
-    PDF = "pdf"
-    MD = "md"
+class SummarizationTask(AggregateRoot):
+    """Задача на суммаризацию.
 
-
-class TaskStatus(StrEnum):
-    """Статус задачи"""
-    PENDING = "pending"
-    PROCESSING = "processing"
-    TRANSCRIBING = "transcribing"
-    SUMMARIZING = "summarizing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
-class SummarizationTask(Entity):
-    """Задача на суммаризацию"""
+    Attributes:
+        collection_id: Коллекция для которой выполняется суммаризация.
+        summary_type: Тип суммаризации.
+        summary_format: Выходной формат документа с суммаризацией.
+        status: Статус суммаризации.
+        waiting_time: Примерное оставшееся время ожидания (обновляется после смены статуса).
+        updated_at: Время обновления задачи.
+    """
+    collection_id: UUID
+    summary_type: SummaryType
+    summary_format: SummaryFormat
     status: TaskStatus
-    waiting_time: PositiveFloat
-    updated_at: datetime
+    waiting_time: PositiveInt
+    updated_at: datetime = Field(default_factory=current_datetime)
 
-
-class DocumentFileMetadata(FileMetadata):
-    """Мета-данные файлового документа"""
-    page_count: PositiveInt
+    @classmethod
+    def create(
+            cls,
+            collection_id: UUID,
+            total_duration: int,
+            summary_type: SummaryType,
+            summary_format: SummaryFormat
+    ) -> Self:
+        task = cls(
+            collection_id=collection_id,
+            summary_type=summary_type,
+            summary_format=summary_format,
+            status=TaskStatus.PENDING,
+            waiting_time=total_duration // 5,  # Сделать нормальный расчёт приблизительного времени
+        )
+        cls._register_event(task, SummarizationTaskCreatedEvent(
+            task_id=task.id,
+            collection_id=collection_id,
+            summary_type=summary_type,
+            summary_format=summary_format
+        ))
+        return task
 
 
 class Summary(Entity):

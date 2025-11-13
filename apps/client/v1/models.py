@@ -36,3 +36,7 @@ class Collection(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, frozen=True)
+
+    @property
+    def total_duration(self) -> int:
+        return sum(record.metadata.duration for record in self.records)

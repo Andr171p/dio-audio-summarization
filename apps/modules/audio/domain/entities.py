@@ -88,6 +88,11 @@ class AudioCollection(AggregateRoot):
     record_count: NonNegativeInt = Field(default=0)
     records: list[AudioRecord] = Field(default_factory=list)
 
+    @property
+    def total_duration(self) -> int:
+        """Общая продолжительность коллекции в секундах"""
+        return sum(record.metadata.duration for record in self.records)
+
     @classmethod
     def create(cls, command: CreateCollectionCommand) -> Self:
         """Создание коллекции"""
