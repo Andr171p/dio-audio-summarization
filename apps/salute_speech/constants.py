@@ -1,5 +1,10 @@
 from typing import Any, Final, Literal
 
+# Базовый URL сервиса SberDevices
+SBER_DEVICES_BASE_URL = "https://ngw.devices.sberbank.ru:9443/api/v2"
+# Базовый URL для REST API Salute-Speech
+SALUTE_SPEECH_BASE_URL = "https://smartspeech.sber.ru/rest/v1"
+
 # Язык для распознавания речи
 Language = Literal["ru-RU", "en-US", "kk-KZ", "ky-KG", "uz-UZ"]
 # Допустимые кодировки аудио

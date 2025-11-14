@@ -4,12 +4,10 @@ from uuid import uuid4
 
 import requests
 
+from .constants import SBER_DEVICES_BASE_URL
 from .exceptions import AuthenticationFailedError
 
 logger = logging.getLogger(__name__)
-
-# Базовый URL сервиса SberDevices
-SBER_DEVICES_BASE_URL = "https://ngw.devices.sberbank.ru:9443/api/v2"
 
 
 class OAuthSberDevicesClient:
@@ -20,6 +18,7 @@ class OAuthSberDevicesClient:
             client_id: str,
             client_secret: str,
             use_ssl: bool = False,
+            base_url: str = SBER_DEVICES_BASE_URL,
     ) -> None:
         self._apikey = apikey
         self._scope = scope
@@ -27,6 +26,7 @@ class OAuthSberDevicesClient:
         self._client_secret = client_secret
         self._rq_uid = uuid4()
         self._use_ssl = use_ssl
+        self._base_url = base_url
 
     def _build_apikey(self) -> str:
         credentials = f"{self._client_id}:{self._client_secret}"
@@ -34,7 +34,7 @@ class OAuthSberDevicesClient:
 
     def authenticate(self) -> str:
         """Производит аутентификацию клиента, выдавая access token"""
-        url = f"{SBER_DEVICES_BASE_URL}/oauth"
+        url = f"{self._base_url}/oauth"
         headers = {
             "Authorization": f"Bearer {self._build_apikey()}",
             "Content-Type": "application/x-www-form-urlencoded",

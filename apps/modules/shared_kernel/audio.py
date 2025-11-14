@@ -91,3 +91,8 @@ class AudioSegment(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(from_attributes=True, frozen=True)
+
+    @property
+    def is_last(self) -> bool:
+        """Является ли сегмент последним в последовательности"""
+        return self.id == self.total_count

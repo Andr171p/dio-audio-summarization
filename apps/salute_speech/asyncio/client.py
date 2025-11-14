@@ -2,17 +2,17 @@ import json
 import logging
 from uuid import UUID
 
-import requests
+import aiohttp
 
-from .constants import AUDIO_ENCODING_CONFIG, SALUTE_SPEECH_BASE_URL, AudioEncoding, Language
-from .exceptions import DownloadingFileError, TaskFailedError, UploadingFileError
-from .models import SpeechRecognized, Task
-from .oauth import OAuthSberDevicesClient
+from ..constants import AUDIO_ENCODING_CONFIG, SALUTE_SPEECH_BASE_URL, AudioEncoding, Language
+from ..exceptions import DownloadingFileError, TaskFailedError, UploadingFileError
+from ..models import SpeechRecognized, Task
+from .oauth import AsyncOAuthSberDevicesClient
 
 logger = logging.getLogger(__name__)
 
 
-class SaluteSpeechClient:
+class AsyncSaluteSpeechClient:
     def __init__(
             self,
             apikey: str,
@@ -26,9 +26,11 @@ class SaluteSpeechClient:
         self._profanity_check = profanity_check
         self._base_url = base_url
         self._use_ssl = use_ssl
-        self._oauth_client = OAuthSberDevicesClient(apikey=apikey, scope=scope, use_ssl=use_ssl)
+        self._oauth_client = AsyncOAuthSberDevicesClient(
+            apikey=apikey, scope=scope, use_ssl=use_ssl
+        )
 
-    def upload_file(
+    async def upload_file(
             self,
             file: bytes,
             audio_encoding: AudioEncoding,
@@ -37,8 +39,7 @@ class SaluteSpeechClient:
     ) -> UUID:
         if samplerate is None:
             samplerate = 16000
-        url = f"{self._base_url}/data:upload"
-        access_token = self._oauth_client.authenticate()
+        access_token = await self._oauth_client.authenticate()
         config = AUDIO_ENCODING_CONFIG.get(audio_encoding)
         if config is None:
             raise ValueError(
@@ -62,19 +63,23 @@ class SaluteSpeechClient:
             "Content-Type": config["content_type"].format(samplerate=samplerate),
         }
         try:
-            with requests.Session() as session:
+            async with aiohttp.ClientSession(base_url=self._base_url) as session, session.post(
+                    url="/data:upload", headers=headers, data=file, ssl=self._use_ssl
+            ) as response:
                 logger.debug("Start uploading file with format of audio %s", audio_encoding)
-                response = session.post(
-                    url=url, headers=headers, data=file, verify=False, stream=True
-                )
                 response.raise_for_status()
-                data = response.json()
+                data = await response.json()
             return UUID(data["result"]["request_file_id"])
-        except requests.exceptions.HTTPError as e:
-            error_message = f"Uploading failed with {response.status_code} status, error: {e}"
+        except aiohttp.ClientResponseError as e:
+            error_message = f"Uploading failed with {response.status} status, error: {e}"
+            logger.exception(error_message)
+            raise UploadingFileError(error_message) from e
+        except aiohttp.ClientError as e:
+            error_message = f"An unexpected error occurred while uploading file: {e}"
+            logger.exception(error_message)
             raise UploadingFileError(error_message) from e
 
-    def async_recognize(
+    async def async_recognize(
             self,
             request_file_id: UUID,
             audio_encoding: AudioEncoding,
@@ -106,8 +111,7 @@ class SaluteSpeechClient:
         :param eou_timeout: Настройка распознавания конца фразы (End of Utterance — eou).
         :returns: Созданная задача со статусом 'NEW'.
         """
-        url = f"{SALUTE_SPEECH_BASE_URL}/speech/async_recognize"
-        access_token = self._oauth_client.authenticate()
+        access_token = await self._oauth_client.authenticate()
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/json",
@@ -139,55 +143,71 @@ class SaluteSpeechClient:
                 "eou_timeout": eou_timeout
             }
         try:
-            with requests.Session() as session:
-                response = session.post(
-                    url=url, headers=headers, data=json.dumps(payload), verify=self._use_ssl
-                )
+            async with aiohttp.ClientSession(base_url=self._base_url) as session, session.post(
+                    url="/speech/async_recognize",
+                    headers=headers,
+                    data=json.dumps(payload),
+                    ssl=self._use_ssl
+            ) as response:
                 response.raise_for_status()
-                data = response.json()
+                data = await response.json()
             return Task.model_validate(data["result"])
-        except requests.exceptions.HTTPError as e:
-            raise TaskFailedError(
-                f"Task creation failed with status {response.status_code} error: {e}"
-            ) from e
+        except aiohttp.ClientResponseError as e:
+            error_message = f"Task creation failed with status {e.status} error: {e.message}"
+            logger.exception(error_message)
+            raise TaskFailedError(error_message) from e
+        except aiohttp.ClientError as e:
+            error_message = f"An error occurred while task creation, error {e}"
+            logger.exception(error_message)
+            raise TaskFailedError(error_message) from e
 
-    def get_task_status(self, task_id: UUID) -> Task:
-        url = f"{self._base_url}/task:get"
-        access_token = self._oauth_client.authenticate()
+    async def get_task_status(self, task_id: UUID) -> Task:
+        access_token = await self._oauth_client.authenticate()
         headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
         params = {"id": f"{task_id}"}
         payload = {}
         try:
-            with requests.Session() as session:
-                response = session.get(
-                    url=url,
-                    headers=headers,
-                    params=params,
-                    data=json.dumps(payload),
-                    verify=self._use_ssl
-                )
+            async with aiohttp.ClientSession(base_url=self._base_url) as session, session.get(
+                url="/task:get",
+                headers=headers,
+                params=params,
+                data=json.dumps(payload),
+                ssl=self._use_ssl
+            ) as response:
                 response.raise_for_status()
-                data = response.json()
+                data = await response.json()
             return Task.model_validate(data["result"])
-        except requests.exceptions.HTTPError:
-            raise TaskFailedError("Task receiving failed") from None
+        except aiohttp.ClientResponseError as e:
+            error_message = f"Task receiving failed with status {e.status} error: {e.message}"
+            logger.exception(error_message)
+            raise TaskFailedError(error_message) from e
+        except aiohttp.ClientError as e:
+            error_message = f"An error occurred while task receiving, error {e}"
+            logger.exception(error_message)
+            raise TaskFailedError(error_message) from e
 
-    def download_file(self, response_file_id: UUID) -> list[SpeechRecognized]:
-        url = f"{self._base_url}/data:download"
-        access_token = self._oauth_client.authenticate()
+    async def download_file(self, response_file_id: UUID) -> list[SpeechRecognized]:
+        access_token = await self._oauth_client.authenticate()
         headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/octet-stream"}
         params = {"response_file_id": f"{response_file_id}"}
         payload = {}
         try:
-            with requests.Session() as session:
-                response = session.get(
-                    url=url, headers=headers, params=params, data=payload, verify=self._use_ssl
-                )
+            async with aiohttp.ClientSession(base_url=self._base_url) as session, session.get(
+                url="/data:download",
+                headers=headers,
+                params=params,
+                data=payload,
+                ssl=self._use_ssl
+            ) as response:
                 response.raise_for_status()
-                data = response.text
+                data = await response.text()
             results = json.loads(data)
             return [SpeechRecognized.from_response(result) for result in results]
-        except requests.exceptions.HTTPError as e:
-            raise DownloadingFileError(
-                f"Downloading failed with status {response.status_code} error: {e}"
-            ) from e
+        except aiohttp.ClientResponseError as e:
+            error_message = f"Downloading failed with status {e.status} error: {e.message}"
+            logger.exception(error_message)
+            raise DownloadingFileError(error_message) from e
+        except aiohttp.ClientError as e:
+            error_message = f"An error occurred while downloading, error {e}"
+            logger.exception(error_message)
+            raise DownloadingFileError(error_message) from e
