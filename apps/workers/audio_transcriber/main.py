@@ -17,7 +17,10 @@ salute_speech_client = AsyncSaluteSpeechClient(
 
 async def recognize_speech(audio_segment: AudioSegment) -> ...:
     request_file_id = await salute_speech_client.upload_file(
-        file=audio_segment.content
+        file=audio_segment.content, audio_encoding=...
+    )
+    task = await salute_speech_client.async_recognize(
+        request_file_id, channels=audio_segment.channels, max_speakers_count=10
     )
 
 

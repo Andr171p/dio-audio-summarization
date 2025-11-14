@@ -6,7 +6,7 @@ from pydantic import PositiveInt
 
 from modules.shared_kernel.domain import Event
 
-from .entities import SummaryFormat, SummaryType
+from .value_objects import SummaryFormat, SummaryType
 
 
 class SummarizationTaskCreatedEvent(Event):

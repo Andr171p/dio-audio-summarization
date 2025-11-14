@@ -51,7 +51,10 @@ async def get_my_collections() -> list[AudioCollection]: ...
     response_model=AudioCollection,
     summary="Получение аудио коллекции по её идентификатору"
 )
-async def get_collection(collection_id: UUID) -> AudioCollection: ...
+async def get_collection(
+        collection_id: UUID, repository: Depends[CollectionRepository]
+) -> AudioCollection:
+    return await repository.read(collection_id)
 
 
 @router.post(
@@ -85,13 +88,13 @@ async def upload_record(
     response_model=AudioRecord,
     summary="Получение аудио записи из коллекции"
 )
-async def get_record(record_id: UUID) -> AudioRecord: ...
+async def get_record(record_id: UUID, repository: Depends[CollectionRepository]) -> AudioRecord:
+    return await repository.get_record(record_id)
 
 
 @router.get(
     path="/records/{record_id}/download",
     status_code=status.HTTP_200_OK,
-    response_model=StreamingResponse,
     summary="Скачивание аудио записи",
 )
 async def download_record(

@@ -30,7 +30,7 @@ services:
       - "9901:9001"              # Web Console (UI)
     restart: unless-stopped
 
-rabbitmq:
+  rabbitmq:
     image: rabbitmq:3.10.7-management
     hostname: rabbitmq
     restart: always
