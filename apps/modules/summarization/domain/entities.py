@@ -22,6 +22,7 @@ class SummarizationTask(AggregateRoot):
         summary_format: Выходной формат документа с суммаризацией.
         status: Статус суммаризации.
         waiting_time: Примерное оставшееся время ожидания (обновляется после смены статуса).
+        summary_id: Идентификатор готовой суммаризации (не nullable при статусе 'completed')
         updated_at: Время обновления задачи.
     """
     collection_id: UUID
@@ -29,6 +30,7 @@ class SummarizationTask(AggregateRoot):
     summary_format: SummaryFormat
     status: TaskStatus
     waiting_time: PositiveInt
+    summary_id: UUID | None = None
     updated_at: datetime = Field(default_factory=current_datetime)
 
     @classmethod
@@ -56,6 +58,13 @@ class SummarizationTask(AggregateRoot):
 
     def update_status(self, new_status: TaskStatus) -> None:
         self.status = new_status
+
+
+class Transcription(Entity):
+    record_id: UUID
+    segment_id: PositiveInt
+    segment_duration: PositiveInt
+    text: str
 
 
 class Summary(Entity):

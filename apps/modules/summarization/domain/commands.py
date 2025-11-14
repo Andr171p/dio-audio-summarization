@@ -10,7 +10,3 @@ class CreateSummarizationTaskCommand(Command):
     collection_id: UUID
     summary_type: SummaryType
     summary_format: SummaryFormat
-
-
-class ProcessAudioCommand(Command):
-    ...

@@ -96,3 +96,27 @@ class AudioSegment(BaseModel):
     def is_last(self) -> bool:
         """Является ли сегмент последним в последовательности"""
         return self.id == self.total_count
+
+    def rewrite(
+            self,
+            content: bytes,
+            size: PositiveInt,
+            format: AudioFormat,  # noqa: A002
+            channels: PositiveInt | None = None,
+            samplerate: PositiveInt | None = None,
+            metadata: dict[str, Any] | None = None,
+    ) -> "AudioSegment":
+        """Перезапись аудио сегмента. Создаёт новый объект не изменяя старый.
+        Если опциональное значение None, то будет взят параметр из старого объекта.
+        """
+        return AudioSegment(
+            id=self.id,
+            total_count=self.total_count,
+            content=content,
+            duration=self.duration,
+            format=format,
+            size=size,
+            channels=channels if channels is not None else self.channels,
+            samplerate=samplerate if samplerate is not None else self.samplerate,
+            metadata=metadata if metadata is not None else self.metadata,
+        )

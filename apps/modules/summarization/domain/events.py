@@ -35,6 +35,8 @@ class AudioTranscribedEvent(Event):
     event_type: ClassVar[str] = "audio_transcribed"
 
     collection_id: UUID
+    record_id: UUID
     segment_id: PositiveInt
+    segment_duration: PositiveInt
     segments_count: PositiveInt
-    transcription: list[dict[str, str]]
+    text: str

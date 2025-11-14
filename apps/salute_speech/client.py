@@ -6,7 +6,7 @@ import requests
 
 from .constants import AUDIO_ENCODING_CONFIG, SALUTE_SPEECH_BASE_URL, AudioEncoding, Language
 from .exceptions import DownloadingFileError, TaskFailedError, UploadingFileError
-from .models import SpeechRecognized, Task
+from .models import RecognizedSpeech, RecognizedSpeechList, Task
 from .oauth import OAuthSberDevicesClient
 
 logger = logging.getLogger(__name__)
@@ -172,7 +172,7 @@ class SaluteSpeechClient:
         except requests.exceptions.HTTPError:
             raise TaskFailedError("Task receiving failed") from None
 
-    def download_file(self, response_file_id: UUID) -> list[SpeechRecognized]:
+    def download_file(self, response_file_id: UUID) -> RecognizedSpeechList:
         url = f"{self._base_url}/data:download"
         access_token = self._oauth_client.authenticate()
         headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/octet-stream"}
@@ -186,7 +186,9 @@ class SaluteSpeechClient:
                 response.raise_for_status()
                 data = response.text
             results = json.loads(data)
-            return [SpeechRecognized.from_response(result) for result in results]
+            return RecognizedSpeechList(
+                [RecognizedSpeech.from_response(result) for result in results]
+            )
         except requests.exceptions.HTTPError as e:
             raise DownloadingFileError(
                 f"Downloading failed with status {response.status_code} error: {e}"

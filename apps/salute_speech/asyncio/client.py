@@ -6,7 +6,7 @@ import aiohttp
 
 from ..constants import AUDIO_ENCODING_CONFIG, SALUTE_SPEECH_BASE_URL, AudioEncoding, Language
 from ..exceptions import DownloadingFileError, TaskFailedError, UploadingFileError
-from ..models import SpeechRecognized, Task
+from ..models import RecognizedSpeech, RecognizedSpeechList, Task
 from .oauth import AsyncOAuthSberDevicesClient
 
 logger = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ class AsyncSaluteSpeechClient:
             logger.exception(error_message)
             raise TaskFailedError(error_message) from e
 
-    async def download_file(self, response_file_id: UUID) -> list[SpeechRecognized]:
+    async def download_file(self, response_file_id: UUID) -> RecognizedSpeechList:
         access_token = await self._oauth_client.authenticate()
         headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/octet-stream"}
         params = {"response_file_id": f"{response_file_id}"}
@@ -202,7 +202,9 @@ class AsyncSaluteSpeechClient:
                 response.raise_for_status()
                 data = await response.text()
             results = json.loads(data)
-            return [SpeechRecognized.from_response(result) for result in results]
+            return RecognizedSpeechList(
+                [RecognizedSpeech.from_response(result) for result in results]
+            )
         except aiohttp.ClientResponseError as e:
             error_message = f"Downloading failed with status {e.status} error: {e.message}"
             logger.exception(error_message)
