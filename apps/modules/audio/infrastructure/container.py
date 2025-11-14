@@ -2,7 +2,7 @@ from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from modules.shared_kernel.application import Storage
-from modules.shared_kernel.application.message_bus import PrintEventBus
+from modules.shared_kernel.application.message_bus import LogMessageBus
 
 from ..application import (
     CollectionRepository,
@@ -28,5 +28,5 @@ class AudioProvider(Provider):
             self, repository: CollectionRepository, storage: Storage
     ) -> UploadRecordUseCase:
         return UploadRecordUseCase(
-            repository=repository, storage=storage, eventbus=PrintEventBus()
+            repository=repository, storage=storage, eventbus=LogMessageBus()
         )

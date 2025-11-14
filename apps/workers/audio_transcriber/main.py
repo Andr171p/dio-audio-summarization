@@ -15,6 +15,12 @@ salute_speech_client = AsyncSaluteSpeechClient(
 )
 
 
+async def recognize_speech(audio_segment: AudioSegment) -> ...:
+    request_file_id = await salute_speech_client.upload_file(
+        file=audio_segment.content
+    )
+
+
 @broker.subscriber("audio_transcribing")
 @broker.publisher("transcription_summarizing")
 async def transcribe_audio(audio_segment: AudioSegment, logger: Logger) -> ...:
