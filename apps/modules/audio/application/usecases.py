@@ -1,6 +1,6 @@
 from collections.abc import AsyncIterable
 
-from modules.shared_kernel.application import EventBus, Storage
+from modules.shared_kernel.application import MessageBus, Storage
 from modules.shared_kernel.file_managment import FilePart
 
 from ..domain import (
@@ -31,11 +31,11 @@ class UploadRecordUseCase:
             self,
             repository: CollectionRepository,
             storage: Storage,
-            eventbus: EventBus
+            message_bus: MessageBus
     ) -> None:
         self.repository = repository
         self.storage = storage
-        self.eventbus = eventbus
+        self.message_bus = message_bus
 
     async def execute(
             self, stream: AsyncIterable[bytes], command: AddRecordCommand
@@ -49,7 +49,7 @@ class UploadRecordUseCase:
         await self.storage.upload_multipart(record.generate_file_parts(stream))
         added_record = await self.repository.add_record(record)
         for event in collection.collect_events():
-            await self.eventbus.publish(event)
+            await self.message_bus.publish(event)
         return added_record
 
 

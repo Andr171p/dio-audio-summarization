@@ -9,7 +9,10 @@ broker = RabbitBroker(url=dev_settings.rabbitmq.url)
 
 app = FastStream(broker)
 
-client = AsyncSaluteSpeechClient(...)
+salute_speech_client = AsyncSaluteSpeechClient(
+    apikey=dev_settings.salute_speech.apikey,
+    scope=dev_settings.salute_speech.scope,
+)
 
 
 @broker.subscriber("audio_transcribing")

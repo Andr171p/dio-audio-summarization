@@ -45,6 +45,15 @@ class RabbitMQSettings(BaseSettings):
         return ...
 
 
+class SaluteSpeechSettings(BaseSettings):
+    apikey: str = "<APIKEY>"
+    scope: str = "<SCOPE>"
+    client_id: str = "<CLIENT_ID>"
+    client_secret: str = "<CLIENT_SECRET>"
+
+    model_config = SettingsConfigDict(env_prefix="SALUTE_SPEECH")
+
+
 class AppSettings(BaseSettings):
     port: int = 8000
     host: str = "localhost"
@@ -61,6 +70,7 @@ class Settings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     minio: MinioSettings = MinioSettings()
     rabbitmq: RabbitMQSettings = RabbitMQSettings()
+    salute_speech: SaluteSpeechSettings = SaluteSpeechSettings()
 
 
 settings: Final[Settings] = Settings()
