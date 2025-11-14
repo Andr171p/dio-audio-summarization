@@ -33,3 +33,10 @@ class CreateSummarizationTaskUseCase:
         for event in task.collect_events():
             await self.message_bus.publish(event)
         return created_task
+
+
+class AddSummaryTemplateUseCase:
+    def __init__(self) -> None:
+        ...
+
+    async def execute(self, command: ...) -> ...: ...

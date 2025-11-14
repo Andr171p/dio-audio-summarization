@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Mapped
 
 from modules.shared_kernel.insrastructure.database import (
@@ -6,6 +5,7 @@ from modules.shared_kernel.insrastructure.database import (
     PostgresUUID,
     PostgresUUIDNullable,
     StrText,
+    StrUnique,
 )
 
 
@@ -24,3 +24,11 @@ class TranscriptionModel(Base):
     segment_id: Mapped[int]
     segment_duration: Mapped[int]
     text: Mapped[StrText]
+
+
+class SummaryTemplateModel(Base):
+    __tablename__ = "summary_templates"
+
+    user_id: Mapped[PostgresUUID]
+    filepath: Mapped[StrUnique]
+    md_text: Mapped[StrText]

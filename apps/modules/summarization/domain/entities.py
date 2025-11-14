@@ -41,6 +41,14 @@ class SummarizationTask(AggregateRoot):
             summary_type: SummaryType,
             summary_format: SummaryFormat
     ) -> Self:
+        """Создание задачи на суммаризацию.
+
+        :param collection_id: Идентификатор коллекции.
+        :param total_duration: Полная длительность всей коллекции.
+        :param summary_type: Тип саммари.
+        :param summary_format: Формат документа для саммари, например: 'pdf', 'docx', ...
+        :returns: Созданная задача на суммаризацию.
+        """
         task = cls(
             collection_id=collection_id,
             summary_type=summary_type,
@@ -57,14 +65,25 @@ class SummarizationTask(AggregateRoot):
         return task
 
     def update_status(self, new_status: TaskStatus) -> None:
+        """Обновление статуса задачи"""
         self.status = new_status
 
 
 class Transcription(Entity):
+    """Транскрибация аудио сегмента"""
+
     record_id: UUID
     segment_id: PositiveInt
     segment_duration: PositiveInt
     text: str
+
+
+class SummaryTemplate(Entity):
+    """Шаблон для суммаризации"""
+
+    user_id: UUID
+    filepath: Filepath
+    md_text: str
 
 
 class Summary(Entity):
