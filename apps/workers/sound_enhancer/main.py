@@ -8,7 +8,7 @@ from pedalboard import Compressor, Gain, LowShelfFilter, NoiseGate, Pedalboard
 
 from config.dev import settings as dev_settings
 from modules.shared_kernel.audio import AudioFormat, AudioSegment
-from modules.summarization.domain import SoundQualityEnhancedEvent
+from modules.summarization.domain import SoundEnhancedEvent
 
 logger = logging.getLogger(__name__)
 
@@ -17,14 +17,14 @@ broker = RabbitBroker(url=dev_settings.rabbitmq.url)
 app = FastStream(broker)
 
 
-def enhance_sound_quality(content: bytes, output_format: str = "wav") -> tuple[bytes, int]:
+def enhance_sound_quality(audio: bytes, output_format: AudioFormat = "wav") -> tuple[bytes, int]:
     """Улучшение качества звука используя технологии Spotify.
 
-    :param content: Байты аудио записи.
+    :param audio: Байты аудио записи.
     :param output_format: Формат аудио на выходе, после обработки (по умолчанию WAV).
     :returns: Байты обработанной аудио записи + частота дискретизации.
     """
-    with io.BytesIO(content) as stream:
+    with io.BytesIO(audio) as stream:
         content, samplerate = sf.read(stream)
     board = Pedalboard([
         NoiseGate(threshold_db=-30, ratio=1.5, release_ms=250),
@@ -39,8 +39,8 @@ def enhance_sound_quality(content: bytes, output_format: str = "wav") -> tuple[b
         return stream.read(), samplerate
 
 
-@broker.subscriber("sound_quality_enhancement")
-@broker.publisher("sound_quality_enhancement")
+@broker.subscriber("sound_enhancement")
+@broker.publisher("sound_enhancement")
 async def handle_sound_quality_enhancement(
         audio_segment: AudioSegment, logger: Logger
 ) -> AudioSegment:
@@ -49,23 +49,18 @@ async def handle_sound_quality_enhancement(
         audio_segment.id, audio_segment.total_count, audio_segment.duration,
         extra=audio_segment.metadata
     )
-    enhanced_sound, samplerate = enhance_sound_quality(audio_segment.content)
+    effected, samplerate = enhance_sound_quality(audio_segment.content)
     logger.info(
         "Finished sound quality enhancement for audio segment %s/%s with duration %s sec",
         audio_segment.id, audio_segment.total_count, audio_segment.duration,
         extra=audio_segment.metadata
     )
     if audio_segment.is_last:
-        event = SoundQualityEnhancedEvent(collection_id=audio_segment.metadata["collection_id"])
-        await broker.publish(event, queue="sound_quality_enhancement")
-    return AudioSegment(
-        id=audio_segment.id,
-        total_count=audio_segment.total_count,
-        content=enhanced_sound,
+        event = SoundEnhancedEvent(collection_id=audio_segment.metadata["collection_id"])
+        await broker.publish(event, queue="sound_enhancement")
+    return audio_segment.rewrite(
+        content=effected,
+        size=len(effected),
         format=AudioFormat.WAV,
-        size=len(enhanced_sound),
-        duration=audio_segment.duration,
-        samplerate=samplerate,
-        channels=audio_segment.channels,
-        metadata=audio_segment.metadata
+        samplerate=samplerate
     )

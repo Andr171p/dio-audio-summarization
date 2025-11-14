@@ -6,9 +6,8 @@ from faststream.rabbit import RabbitBroker
 from client.v1 import ClientV1
 from config.dev import settings as dev_settings
 from modules.shared_kernel.audio import AudioFormat, AudioSegment
-from modules.summarization.domain import AudioProcessedEvent, SummarizationTaskCreatedEvent
+from modules.summarization.domain import AudioSplitEvent, SummarizationTaskCreatedEvent
 
-from .sound_enhansment import enhance_sound_quality
 from .splitter import AudioSplitter
 
 CHUNK_SIZE = 8192  # Размер чанка для скачивания аудио записей
@@ -28,8 +27,8 @@ def calculate_chunk_duration(total_duration: int, record_count: int) -> int:
     ...
 
 
-@broker.subscriber("audio_processing")
-@broker.publisher("audio_processing")
+@broker.subscriber("audio_splitting")
+@broker.publisher("sound_enhancement")
 async def handle_summarization_task_created_event(
         event: SummarizationTaskCreatedEvent, logger: Logger
 ) -> AsyncIterable[AudioSegment]:
@@ -45,13 +44,7 @@ async def handle_summarization_task_created_event(
         async for audio_segment in splitter.split_stream(
                 stream, metadata={"collection_id": collection.id, "record_id": record.id}
         ):
-            effected_sound, samplerate = enhance_sound_quality(audio_segment.content)
-            yield AudioSegment.rewrite(
-                content=effected_sound,
-                size=len(effected_sound),
-                format=AudioFormat.WAV,
-                samplerate=samplerate
-            )
+            yield audio_segment
             segments_count += 1
-    event = AudioProcessedEvent(collection_id=collection.id, segments_count=segments_count)
-    await broker.publish(event, queue="audio_processing")
+    event = AudioSplitEvent(collection_id=collection.id, segments_count=segments_count)
+    await broker.publish(event, queue="audio_splitting")

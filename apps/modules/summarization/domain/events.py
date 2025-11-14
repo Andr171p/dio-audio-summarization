@@ -18,15 +18,15 @@ class SummarizationTaskCreatedEvent(Event):
     summary_format: SummaryFormat
 
 
-class AudioProcessedEvent(Event):
-    event_type: ClassVar[str] = "audio_processed"
+class AudioSplitEvent(Event):
+    event_type: ClassVar[str] = "audio_split"
 
     collection_id: UUID
     segments_count: PositiveInt
 
 
-class SoundQualityEnhancedEvent(Event):
-    event_type: ClassVar[str] = "sound_quality_enhanced"
+class SoundEnhancedEvent(Event):
+    event_type: ClassVar[str] = "sound_enhanced"
 
     collection_id: UUID
 

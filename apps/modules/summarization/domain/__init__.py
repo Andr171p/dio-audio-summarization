@@ -1,8 +1,8 @@
 __all__ = (
-    "AudioProcessedEvent",
+    "AudioSplitEvent",
     "AudioTranscribedEvent",
     "CreateSummarizationTaskCommand",
-    "SoundQualityEnhancedEvent",
+    "SoundEnhancedEvent",
     "SummarizationTask",
     "SummarizationTaskCreatedEvent",
     "Transcription",
@@ -11,8 +11,8 @@ __all__ = (
 from .commands import CreateSummarizationTaskCommand
 from .entities import SummarizationTask, Transcription
 from .events import (
-    AudioProcessedEvent,
+    AudioSplitEvent,
     AudioTranscribedEvent,
-    SoundQualityEnhancedEvent,
+    SoundEnhancedEvent,
     SummarizationTaskCreatedEvent,
 )
