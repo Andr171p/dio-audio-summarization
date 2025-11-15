@@ -100,6 +100,9 @@ class AudioCollection(AggregateRoot):
             user_id=command.user_id, topic=command.topic, status=CollectionStatus.NEW
         )
 
+    def _set_status(self, status: CollectionStatus) -> None:
+        self.status = status
+
     def add_record(self, command: AddRecordCommand) -> AudioRecord:
         """Добавление аудио записи в коллекцию"""
         record_id, created_at = uuid4(), current_datetime()
