@@ -28,5 +28,5 @@ class AudioProvider(Provider):
             self, repository: CollectionRepository, storage: Storage
     ) -> UploadRecordUseCase:
         return UploadRecordUseCase(
-            repository=repository, storage=storage, eventbus=LogMessageBus()
+            repository=repository, storage=storage, message_bus=LogMessageBus()
         )
