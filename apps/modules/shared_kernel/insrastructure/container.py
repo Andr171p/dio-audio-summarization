@@ -10,7 +10,7 @@ from .database import sessionmaker
 from .storage import S3Storage
 
 
-class SharedProvider(Provider):
+class SharedKernelProvider(Provider):
     @provide(scope=Scope.REQUEST)
     async def provide_session(self) -> AsyncIterator[AsyncSession]:  # noqa: PLR6301
         async with sessionmaker() as session:

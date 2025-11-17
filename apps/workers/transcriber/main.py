@@ -19,6 +19,11 @@ salute_speech_client = AsyncSaluteSpeechClient(
 
 
 async def transcribe_audio(audio_segment: AudioSegment) -> str:
+    """Асинхронная трансрибация аудио сегмента.
+
+    :param audio_segment: Аудио сегмент для трансрибации.
+    :returns: Трансрибация + диаризация в формате Markdown.
+    """
     request_file_id = await salute_speech_client.upload_file(
         file=audio_segment.content, audio_encoding="PCM_S16LE"
     )
@@ -32,9 +37,9 @@ async def transcribe_audio(audio_segment: AudioSegment) -> str:
     return recognized_speech_list.to_markdown()
 
 
-@broker.subscriber("audio_transcribing")
-@broker.publisher("audio_transcribing")
-async def handle_audio_transcribing(
+@broker.subscriber("transcribing")
+@broker.publisher("transcribing")
+async def handle_audio_segment(
         audio_segment: AudioSegment, logger: Logger
 ) -> AudioTranscribedEvent:
     text = await transcribe_audio(audio_segment)
@@ -43,10 +48,12 @@ async def handle_audio_transcribing(
         audio_segment.id, audio_segment.total_count
     )
     return AudioTranscribedEvent(
+        task_id=audio_segment.metadata["task_id"],
         collection_id=audio_segment.metadata["collection_id"],
         record_id=audio_segment.metadata["record_id"],
         segment_id=audio_segment.id,
         segment_duration=audio_segment.duration,
         segments_count=audio_segment.total_count,
+        is_last=audio_segment.is_last,
         text=text,
     )

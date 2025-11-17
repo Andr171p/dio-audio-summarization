@@ -3,7 +3,14 @@ from typing import Any, Self
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 
+from pydantic import BaseModel, ConfigDict
 from pydantic_core import CoreSchema, core_schema
+
+
+class ValueObject(BaseModel, ABC):
+    """Базовый иммутабельный объект значения"""
+
+    model_config = ConfigDict(frozen=True)
 
 
 class StrPrimitive(str, ABC):  # noqa: SLOT000

@@ -4,6 +4,7 @@ __all__ = (
     "DictJson",
     "PostgresUUID",
     "PostgresUUIDNullable",
+    "SQLCRUDRepository",
     "StrNullable",
     "StrText",
     "StrUnique",
@@ -25,3 +26,4 @@ from .base import (
     TextNullable,
     sessionmaker,
 )
+from .repository import SQLCRUDRepository

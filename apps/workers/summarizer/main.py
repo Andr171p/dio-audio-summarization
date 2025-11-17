@@ -1,36 +1,19 @@
-from typing import Final, Literal
+from faststream import FastStream, Logger
+from faststream.rabbit import RabbitBroker
 
-from abc import ABC, abstractmethod
+from config.dev import settings as dev_settings
+from modules.summarization.domain import (
+    SummarizeTranscriptionCommand,
+    TranscriptionSummarizedEvent,
+)
 
-from langchain_core.language_models import BaseChatModel
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+broker = RabbitBroker(url=dev_settings.rabbitmq.url)
 
-# Стратегия для суммаризации
-Strategy = Literal["simple", "extractive", "abstractive"]
-
-llm: Final[BaseChatModel] = ...
-
-
-class Summarizer(ABC):
-    @abstractmethod
-    async def summarize(self, text: str, **kwargs) -> str: ...
+app = FastStream(broker)
 
 
-class SimpleSummarizer(Summarizer):
-    async def summarize(self, text: str, **kwargs) -> str: ...
-
-
-class ExtractiveSummarizer(Summarizer):
-    async def summarize(self, text: str, **kwargs) -> str: ...
-
-
-class AbstractiveSummarizer(Summarizer):
-    async def summarize(self, text: str, **kwargs) -> str: ...
-
-
-def choose_strategy(text: str) -> Strategy: ...
-
-
-async def summarize(text: str, strategy: Strategy = "simple") -> str:
-    ...
+@broker.subscriber("summarizing")
+@broker.publisher("summarizing")
+async def handle_summarize_transcription_command(
+        command: SummarizeTranscriptionCommand, logger: Logger
+) -> TranscriptionSummarizedEvent: ...

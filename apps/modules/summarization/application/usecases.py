@@ -7,7 +7,7 @@ from modules.shared_kernel.application import MessageBus
 
 from ..domain import SummarizationTask
 from ..domain.commands import CreateSummarizationTaskCommand
-from .repository import TaskRepository
+from .repositories import TaskRepository
 
 
 class CreateSummarizationTaskUseCase:

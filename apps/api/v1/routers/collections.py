@@ -46,6 +46,15 @@ async def get_my_collections() -> list[AudioCollection]: ...
 
 
 @router.get(
+    path="/{collection_id}/transcriptions",
+    status_code=status.HTTP_200_OK,
+    response_model=list[...],
+    summary="Получение аудио трансрибаций"
+)
+async def get_transcriptions(collection_id: UUID) -> list[...]: ...
+
+
+@router.get(
     path="/{collection_id}",
     status_code=status.HTTP_200_OK,
     response_model=AudioCollection,

@@ -42,9 +42,16 @@ async def handle_summarization_task_created_event(
     for record in collection.records:
         stream = client.collections.download_record(record.id, chunk_size=CHUNK_SIZE)
         async for audio_segment in splitter.split_stream(
-                stream, metadata={"collection_id": collection.id, "record_id": record.id}
+                stream,
+                metadata={
+                    "task_id": event.task_id,
+                    "collection_id": collection.id,
+                    "record_id": record.id
+                }
         ):
             yield audio_segment
             segments_count += 1
-    event = AudioSplitEvent(collection_id=collection.id, segments_count=segments_count)
+    event = AudioSplitEvent(
+        task_id=event.task_id, collection_id=collection.id, segments_count=segments_count
+    )
     await broker.publish(event, queue="audio_splitting")
