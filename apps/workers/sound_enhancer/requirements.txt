@@ -1,0 +1,4 @@
+fastapi[all]>=0.120.4
+faststream[rabbit]>=0.6.3
+soundfile>=0.13.1
+pedalboard>=0.9.19
