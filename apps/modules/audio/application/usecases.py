@@ -49,5 +49,5 @@ class UploadRecordUseCase:
         await self.storage.upload_multipart(record.generate_file_parts(stream))
         added_record = await self.repository.add_record(record)
         for event in collection.collect_events():
-            await self.message_bus.publish(event)
+            await self.message_bus.send(event)
         return added_record

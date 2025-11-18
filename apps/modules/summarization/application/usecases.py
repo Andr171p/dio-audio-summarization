@@ -31,7 +31,7 @@ class CreateTaskUseCase:
         )
         created_task = await self.task_repository.create(task)
         for event in task.collect_events():
-            await self.message_bus.publish(event)
+            await self.message_bus.send(event)
         return created_task
 
 

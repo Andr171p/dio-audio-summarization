@@ -1,5 +1,6 @@
 __all__ = (
     "CRUDRepository",
+    "Message",
     "MessageBus",
     "ReadableRepository",
     "Storage",
@@ -7,7 +8,7 @@ __all__ = (
     "WritableRepository",
 )
 
-from .message_bus import MessageBus
+from .message_bus import Message, MessageBus
 from .repositories import CRUDRepository, ReadableRepository, WritableRepository
 from .storage import Storage
 from .uow import UnitOfWork

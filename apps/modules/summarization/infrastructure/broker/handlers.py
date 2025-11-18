@@ -1,6 +1,6 @@
 from dishka.integrations.faststream import FromDishka as Depends
 from faststream import Logger
-from faststream.rabbit import RabbitRouter
+from faststream.rabbit import RabbitQueue, RabbitRouter
 
 from ...application import (
     AudioSplitEventHandler,
@@ -18,8 +18,13 @@ from ...domain import (
 
 router = RabbitRouter()
 
+audio_splitting_queue = RabbitQueue(name="audio_splitting", durable=True)
+sound_enhancement_queue = RabbitQueue(name="sound_enhancement", durable=True)
+transcribing_queue = RabbitQueue(name="transcribing", durable=True)
+summarizing_queue = RabbitQueue(name="summarizing", durable=True)
 
-@router.subscriber("audio_splitting")
+
+@router.subscriber(audio_splitting_queue)
 async def handle_audio_split_event(
         event: AudioSplitEvent,
         handler: Depends[AudioSplitEventHandler],
@@ -28,7 +33,7 @@ async def handle_audio_split_event(
     await handler.handle(event)
 
 
-@router.subscriber("sound_enhancement")
+@router.subscriber(sound_enhancement_queue)
 async def handle_sound_enhanced_event(
         event: SoundEnhancedEvent,
         handler: Depends[SoundEnhancedEventHandler],
@@ -37,8 +42,8 @@ async def handle_sound_enhanced_event(
     await handler.handle(event)
 
 
-@router.subscriber("transcribing")
-@router.publisher("summarizing")
+@router.subscriber(transcribing_queue)
+@router.publisher(summarizing_queue)
 async def handle_audio_transcribed_event(
         event: AudioTranscribedEvent,
         handler: Depends[AudioTranscribedEventHandler],
@@ -46,7 +51,7 @@ async def handle_audio_transcribed_event(
     return await handler.handle(event)
 
 
-@router.subscriber("summarizing")
+@router.subscriber(summarizing_queue)
 async def handle_transcription_summarized_event(
         event: TranscriptionSummarizedEvent,
         handler: Depends[TranscriptionSummarizedEventHandler],
