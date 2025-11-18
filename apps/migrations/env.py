@@ -10,6 +10,7 @@ from alembic import context
 from config.dev import settings as dev_settings
 from modules.shared_kernel.insrastructure.database import Base
 from modules.audio.infrastructure.database import AudioCollectionModel, AudioRecordModel
+from modules.summarization.infrastructure.database import SummarizationTaskModel
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

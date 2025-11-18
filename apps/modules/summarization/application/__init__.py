@@ -1,7 +1,7 @@
 __all__ = (
     "AudioSplitEventHandler",
     "AudioTranscribedEventHandler",
-    "CreateSummarizationTaskUseCase",
+    "CreateTaskUseCase",
     "SoundEnhancedEventHandler",
     "SummaryRepository",
     "TaskRepository",
@@ -16,4 +16,4 @@ from .handlers import (
     TranscriptionSummarizedEventHandler,
 )
 from .repositories import SummaryRepository, TaskRepository, TranscriptionRepository
-from .usecases import CreateSummarizationTaskUseCase
+from .usecases import CreateTaskUseCase

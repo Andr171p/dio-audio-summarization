@@ -1,5 +1,3 @@
-from typing import Protocol
-
 from uuid import UUID
 
 from sqlalchemy import delete, insert, select, update
@@ -17,7 +15,7 @@ from ...domain import Entity
 from .base import Base
 
 
-class SQLAlchemyRepository[EntityT: Entity, ModelT: Base](Protocol):
+class SQLAlchemyRepository[EntityT: Entity, ModelT: Base]:
     entity: type[EntityT]
     model: type[ModelT]
 

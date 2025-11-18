@@ -10,7 +10,7 @@ from ..domain.commands import CreateSummarizationTaskCommand
 from .repositories import TaskRepository
 
 
-class CreateSummarizationTaskUseCase:
+class CreateTaskUseCase:
     def __init__(
             self,
             task_repository: TaskRepository,
@@ -26,7 +26,7 @@ class CreateSummarizationTaskUseCase:
         task = SummarizationTask.create(
             collection_id=collection.id,
             total_duration=collection.total_duration,
-            summary_format=command.summary_format,
+            document_format=command.document_format,
             summary_type=command.summary_type,
         )
         created_task = await self.task_repository.create(task)
@@ -35,7 +35,7 @@ class CreateSummarizationTaskUseCase:
         return created_task
 
 
-class AddSummaryTemplateUseCase:
+class UploadTemplateUseCase:
     def __init__(self) -> None:
         ...
 

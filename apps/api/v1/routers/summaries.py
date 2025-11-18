@@ -4,7 +4,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from dishka.integrations.fastapi import FromDishka as Depends
 from fastapi import APIRouter, status
 
-from modules.summarization.application import CreateSummarizationTaskUseCase, TaskRepository
+from modules.summarization.application import CreateTaskUseCase, TaskRepository
 from modules.summarization.domain import CreateSummarizationTaskCommand, SummarizationTask, Summary
 
 router = APIRouter(prefix="/summaries", tags=["Summaries"], route_class=DishkaRoute)
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/summaries", tags=["Summaries"], route_class=DishkaRo
     summary="Создание задачи на суммаризацию",
 )
 async def create_summarization_task(
-        command: CreateSummarizationTaskCommand, usecase: Depends[CreateSummarizationTaskUseCase]
+        command: CreateSummarizationTaskCommand, usecase: Depends[CreateTaskUseCase]
 ) -> SummarizationTask:
     return await usecase.execute(command)
 

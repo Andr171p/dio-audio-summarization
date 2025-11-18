@@ -12,6 +12,9 @@ from modules.shared_kernel.insrastructure.database import (
 class SummarizationTaskModel(Base):
     __tablename__ = "summarization_tasks"
 
+    collection_id: Mapped[PostgresUUID]
+    summary_type: Mapped[str]
+    document_format: Mapped[str]
     status: Mapped[str]
     waiting_time: Mapped[int]
     summary_id: Mapped[PostgresUUIDNullable]

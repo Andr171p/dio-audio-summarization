@@ -8,11 +8,13 @@ from .models import SummarizationTaskModel, TranscriptionModel
 class SQLAlchemyTaskRepository(
     SQLAlchemyRepository[SummarizationTask, SummarizationTaskModel], TaskRepository
 ):
-    pass
+    entity = SummarizationTask
+    model = SummarizationTaskModel
 
 
 class SQLAlchemyTranscriptionRepository(
     SQLAlchemyRepository[Transcription, TranscriptionModel],
     TranscriptionRepository,
 ):
-    pass
+    entity = Transcription
+    model = TranscriptionModel
