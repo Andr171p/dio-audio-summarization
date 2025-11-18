@@ -10,7 +10,7 @@ from ...domain import Entity
 from .base import Base
 
 
-class SQLCRUDRepository[EntityT: Entity, ModelT: Base](Protocol):
+class SQLAlchemyRepository[EntityT: Entity, ModelT: Base](Protocol):
     entity: type[EntityT]
     model: type[ModelT]
 

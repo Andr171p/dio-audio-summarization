@@ -1,18 +1,18 @@
-from modules.shared_kernel.insrastructure.database import SQLCRUDRepository
+from modules.shared_kernel.insrastructure.database import SQLAlchemyRepository
 
 from ...application import TaskRepository, TranscriptionRepository
 from ...domain import SummarizationTask, Transcription
 from .models import SummarizationTaskModel, TranscriptionModel
 
 
-class SQLTaskRepository(
-    SQLCRUDRepository[SummarizationTask, SummarizationTaskModel], TaskRepository
+class SQLAlchemyTaskRepository(
+    SQLAlchemyRepository[SummarizationTask, SummarizationTaskModel], TaskRepository
 ):
     pass
 
 
-class SQLTranscriptionRepository(
-    SQLCRUDRepository[Transcription, TranscriptionModel],
+class SQLAlchemyTranscriptionRepository(
+    SQLAlchemyRepository[Transcription, TranscriptionModel],
     TranscriptionRepository,
 ):
     pass

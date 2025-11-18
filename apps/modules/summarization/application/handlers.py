@@ -1,4 +1,4 @@
-from modules.shared_kernel.application import Storage
+from modules.shared_kernel.application import Storage, UnitOfWork
 
 from ..domain import (
     AudioSplitEvent,
@@ -32,30 +32,35 @@ class SoundEnhancedEventHandler:
 class AudioTranscribedEventHandler:
     def __init__(
             self,
+            uow: UnitOfWork,
             task_repository: TaskRepository,
             transcription_repository: TranscriptionRepository
     ) -> None:
+        self.uow = uow
         self.task_repository = task_repository
         self.transcription_repository = transcription_repository
 
     async def handle(self, event: AudioTranscribedEvent) -> SummarizeTranscriptionCommand | None:
         transcription = Transcription.from_event(event)
-        await self.transcription_repository.create(transcription)
-        if not event.is_last:
-            return None
-        updated_task = await self.task_repository.update(
-            event.task_id, status=TaskStatus.TRANSCRIBED
-        )
+        async with self.uow.transactional():
+            await self.transcription_repository.create(transcription)
+            if not event.is_last:
+                return None
+            updated_task = await self.task_repository.update(
+                event.task_id, status=TaskStatus.TRANSCRIBED
+            )
         return SummarizeTranscriptionCommand(collection_id=updated_task.collection_id)
 
 
 class TranscriptionSummarizedEventHandler:
     def __init__(
             self,
+            uow: UnitOfWork,
             task_repository: TaskRepository,
             summary_repository: SummaryRepository,
             storage: Storage,
     ) -> None:
+        self.uow = uow
         self.task_repository = task_repository
         self.summary_repository = summary_repository
         self.storage = storage
@@ -66,6 +71,7 @@ class TranscriptionSummarizedEventHandler:
             title=event.summary_title, text=event.summary_text, format=task.document_format
         )
         summary, file = task.prepare_summary_for_upload(event, document)
-        await self.storage.upload(file)
-        await self.summary_repository.create(summary)
-        await self.task_repository.update(event.task_id, status=TaskStatus.SUMMARIZED)
+        async with self.uow.transactional():
+            await self.storage.upload(file)
+            await self.summary_repository.create(summary)
+            await self.task_repository.update(event.task_id, status=TaskStatus.SUMMARIZED)
