@@ -4,6 +4,8 @@ from fastapi import Query, Request
 from pydantic import BaseModel, ConfigDict, PositiveFloat, PositiveInt
 
 ChunkSize = Annotated[PositiveInt, Query(...)]
+Page = Annotated[PositiveInt, Query(...)]
+Limit = Annotated[PositiveInt, Query(...)]
 
 
 class AudioMetadataHeaders(BaseModel):

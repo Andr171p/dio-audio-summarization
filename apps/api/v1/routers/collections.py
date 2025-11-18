@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 from dishka.integrations.fastapi import DishkaRoute
 from dishka.integrations.fastapi import FromDishka as Depends
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 
 from modules.audio.application import (
@@ -20,7 +20,7 @@ from modules.audio.domain import (
 from modules.shared_kernel.application import Storage
 from modules.shared_kernel.application.exceptions import NotFoundError
 
-from ..schemas import AudioMetadataHeaders, ChunkSize
+from ..schemas import AudioMetadataHeaders, ChunkSize, Limit, Page
 
 router = APIRouter(prefix="/collections", tags=["Audio collections"], route_class=DishkaRoute)
 
@@ -43,7 +43,18 @@ async def create_collection(
     response_model=list[AudioCollection],
     summary="Получение аудио коллекций пользователя"
 )
-async def get_my_collections() -> list[AudioCollection]: ...
+async def get_my_collections(
+        request: Request,
+        repository: Depends[CollectionRepository],
+        page: Page,
+        limit: Limit,
+) -> list[AudioCollection]:
+    user_id = request.headers.get("X-User-id")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="X-User-id is missing"
+        )
+    return await repository.get_by_user(UUID(user_id), page=page, limit=limit)
 
 
 @router.get(
