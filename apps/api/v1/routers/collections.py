@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 from dishka.integrations.fastapi import DishkaRoute
 from dishka.integrations.fastapi import FromDishka as Depends
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Request, status
 from fastapi.responses import StreamingResponse
 
 from modules.audio.application import (
@@ -18,6 +18,7 @@ from modules.audio.domain import (
     CreateCollectionCommand,
 )
 from modules.shared_kernel.application import Storage
+from modules.shared_kernel.application.exceptions import NotFoundError
 
 from ..schemas import AudioMetadataHeaders, ChunkSize
 
@@ -43,15 +44,6 @@ async def create_collection(
     summary="Получение аудио коллекций пользователя"
 )
 async def get_my_collections() -> list[AudioCollection]: ...
-
-
-@router.get(
-    path="/{collection_id}/transcriptions",
-    status_code=status.HTTP_200_OK,
-    response_model=list[...],
-    summary="Получение аудио трансрибаций"
-)
-async def get_transcriptions(collection_id: UUID) -> list[...]: ...
 
 
 @router.get(
@@ -114,8 +106,10 @@ async def download_record(
 ) -> StreamingResponse:
     record = await repository.get_record(record_id)
     if record is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Record not found"
+        raise NotFoundError(
+            f"Record not found by id {record_id}",
+            entity_name="Record",
+            details={"record_id": record_id}
         )
 
     async def content_generator() -> AsyncIterable[bytes]:

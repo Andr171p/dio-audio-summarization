@@ -136,9 +136,9 @@ class S3Storage(Storage):
                     "Start multipart downloading file, filesize %s, total parts %s",
                     filesize, part_numbers
                 )
-                for part_number in part_numbers:
-                    start = part_numbers * part_size
-                    end = min((part_numbers + 1) * part_size - 1, filesize - 1)
+                for part_number in range(part_numbers):
+                    start = part_number * part_size
+                    end = min((part_number + 1) * part_size - 1, filesize - 1)
                     logger.info(
                         "Downloading part %s: bytes %s-%s", part_number, start, end
                     )
@@ -182,5 +182,5 @@ class S3Storage(Storage):
                     Params={"Bucket": self.bucket, "Key": filepath},
                     ExpiresIn=expires_in
                 )
-        except ClientError as e:
+        except ClientError:
             ...

@@ -2,11 +2,19 @@ from typing import Any
 
 from uuid import UUID
 
-from ..domain import AppError
+from ..domain import AppError, ErrorType
 
 
 class NotFoundError(AppError):
-    pass
+    def __init__(
+            self, message: str, entity_name: str, details: dict[str, Any] | None = None
+    ) -> None:
+        super().__init__(
+            message=message,
+            type=ErrorType.NOT_FOUND,
+            code=f"{entity_name.upper()}_NOT_FOUND",
+            details=details
+        )
 
 
 class UploadingFailedError(AppError):
@@ -20,6 +28,7 @@ class UploadingFailedError(AppError):
     ) -> None:
         super().__init__(
             message=message,
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
             code="UPLOADING_FAILED",
             details=details,
             original_error=original_error
@@ -37,6 +46,7 @@ class DownloadFailedError(AppError):
     ) -> None:
         super().__init__(
             message=message,
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
             code="DOWNLOAD_FAILED",
             details=details,
             original_error=original_error
@@ -54,6 +64,7 @@ class RemovingFailedError(AppError):
     ) -> None:
         super().__init__(
             message=message,
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
             code="REMOVING_FAILED",
             details=details,
             original_error=original_error
@@ -71,6 +82,7 @@ class DuplicateError(AppError):
     ) -> None:
         super().__init__(
             message=f"{entity_name} already exists",
+            type=ErrorType.CONFLICT,
             code="DUPLICATE_ENTITY",
             details=details,
             original_error=original_error
@@ -88,6 +100,7 @@ class CreationError(AppError):
     ) -> None:
         super().__init__(
             message=f"Error occurred while {entity_name} creation",
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
             code="CREATION_FAILED",
             details=details,
             original_error=original_error
@@ -106,6 +119,7 @@ class ReadingError(AppError):
     ) -> None:
         super().__init__(
             message=f"Error occurred while reading {entity_name} by {entity_id}",
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
             code="READING_FAILED",
             details=details,
             original_error=original_error
@@ -124,6 +138,7 @@ class UpdateError(AppError):
     ) -> None:
         super().__init__(
             message=f"Error occurred while update {entity_name} by {entity_id}",
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
             code="UPDATE_FAILED",
             details=details,
             original_error=original_error
@@ -142,6 +157,7 @@ class DeleteError(AppError):
     ) -> None:
         super().__init__(
             message=f"Error occurred while delete {entity_name} by {entity_id}",
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
             code="DELETE_FAILED",
             details=details,
             original_error=original_error

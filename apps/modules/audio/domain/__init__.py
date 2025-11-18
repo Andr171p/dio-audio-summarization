@@ -6,7 +6,6 @@ __all__ = (
     "CollectionStatus",
     "CreateCollectionCommand",
     "CreateCollectionCommand",
-    "DownloadRecordQuery",
     "RecordAddedEvent",
     "RecordAddedEvent",
 )
@@ -19,4 +18,3 @@ from .entities import (
     CollectionStatus,
 )
 from .events import RecordAddedEvent
-from .queries import DownloadRecordQuery

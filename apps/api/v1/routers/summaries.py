@@ -32,7 +32,7 @@ async def get_summary(summary_id: UUID) -> Summary:
     ...
 
 
-@router.get(
+'''@router.get(
     path="/{summary_id}/download",
     status_code=status.HTTP_200_OK,
     summary="Скачивание документа с саммари"
@@ -49,4 +49,4 @@ async def download_summary(summary_id: UUID) -> ...: ...
 async def get_summarization_task(
         task_id: UUID, repository: Depends[TaskRepository]
 ) -> SummarizationTask:
-    return await repository.read(task_id)
+    return await repository.read(task_id)'''

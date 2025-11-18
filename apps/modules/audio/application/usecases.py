@@ -1,16 +1,14 @@
 from collections.abc import AsyncIterable
 
 from modules.shared_kernel.application import MessageBus, Storage
-from modules.shared_kernel.file_managment import FilePart
+from modules.shared_kernel.application.exceptions import NotFoundError
 
 from ..domain import (
     AddRecordCommand,
     AudioCollection,
     AudioRecord,
     CreateCollectionCommand,
-    DownloadRecordQuery,
 )
-from .exceptions import AudioCollectionNotFoundError
 from .repository import CollectionRepository
 
 
@@ -42,8 +40,10 @@ class UploadRecordUseCase:
     ) -> AudioRecord:
         collection = await self.repository.read(command.collection_id)
         if collection is None:
-            raise AudioCollectionNotFoundError(
-                command.collection_id, details={"collection_id": command.collection_id}
+            raise NotFoundError(
+                f"Audio collection not found by id {command.collection_id}",
+                entity_name="AudioCollection",
+                details={"collection_id": command.collection_id}
             )
         record = collection.add_record(command)
         await self.storage.upload_multipart(record.generate_file_parts(stream))
@@ -51,16 +51,3 @@ class UploadRecordUseCase:
         for event in collection.collect_events():
             await self.message_bus.publish(event)
         return added_record
-
-
-class DownloadRecordUseCase:
-    def __init__(self, repository: CollectionRepository, storage: Storage) -> None:
-        self.repository = repository
-        self.storage = storage
-
-    async def execute(self, query: DownloadRecordQuery) -> AsyncIterable[FilePart]:
-        record = await self.repository.get_record(query.collection_id, query.record_id)
-        async for file_part in await self.storage.download_multipart(
-                record.filepath, part_size=query.chunk_size
-        ):
-            yield file_part

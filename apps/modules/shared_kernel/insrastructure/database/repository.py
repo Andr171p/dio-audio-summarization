@@ -6,6 +6,13 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...application.exceptions import (
+    CreationError,
+    DeleteError,
+    DuplicateError,
+    ReadingError,
+    UpdateError,
+)
 from ...domain import Entity
 from .base import Base
 
@@ -23,10 +30,10 @@ class SQLAlchemyRepository[EntityT: Entity, ModelT: Base](Protocol):
             result = await self.session.execute(stmt)
             model = result.scalar_one()
             return self.entity.model_validate(model)
-        except IntegrityError:
-            ...
-        except SQLAlchemyError:
-            ...
+        except IntegrityError as e:
+            raise DuplicateError(entity_name=self.entity.__name__, original_error=e) from e
+        except SQLAlchemyError as e:
+            raise CreationError(entity_name=self.entity.__name__, original_error=e) from e
 
     async def read(self, id: UUID) -> EntityT | None:  # noqa: A002
         try:
@@ -34,8 +41,10 @@ class SQLAlchemyRepository[EntityT: Entity, ModelT: Base](Protocol):
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
             return self.entity.model_validate(model) if model else None
-        except SQLAlchemyError:
-            ...
+        except SQLAlchemyError as e:
+            raise ReadingError(
+                entity_id=id, entity_name=self.entity.__name__, original_error=e
+            ) from e
 
     async def update(self, id: UUID, **kwargs) -> EntityT | None:  # noqa: A002
         try:
@@ -48,16 +57,20 @@ class SQLAlchemyRepository[EntityT: Entity, ModelT: Base](Protocol):
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
             return self.entity.model_validate(model) if model else None
-        except IntegrityError:
-            ...
-        except SQLAlchemyError:
-            ...
+        except IntegrityError as e:
+            raise DuplicateError(entity_name=self.entity.__name__, original_error=e) from e
+        except SQLAlchemyError as e:
+            raise UpdateError(
+                entity_id=id, entity_name=self.entity.__name__, original_error=e
+            ) from e
 
     async def delete(self, id: UUID) -> bool:  # noqa: A002
         try:
             stmt = delete(self.model).where(self.model.id == id)
             result = await self.session.execute(stmt)
-        except SQLAlchemyError:
-            ...
+        except SQLAlchemyError as e:
+            raise DeleteError(
+                entity_id=id, entity_name=self.entity.__name__, original_error=e
+            ) from e
         else:
             return result.rowcount > 0

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveFloat, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveFloat
 
 from .domain import StrPrimitive
 from .utils import current_datetime
@@ -74,7 +74,7 @@ class FilePart(File):
             part_number: Номер чанка файла.
         """
     part_size: PositiveFloat
-    part_number: PositiveInt
+    part_number: NonNegativeInt
 
 
 class FileType(StrEnum):
