@@ -177,3 +177,21 @@ class SQLCollectionRepository(CollectionRepository):
             raise ReadingError(
                 entity_name=AudioRecord.__name__, entity_id=record_id, original_error=e
             ) from e
+
+    async def get_by_user_id(self, user_id: UUID, page: int, limit: int) -> list[AudioCollection]:
+        try:
+            offset = (page - 1) * limit
+            stmt = (
+                select(AudioCollectionModel)
+                .where(AudioCollectionModel.user_id == user_id)
+                .order_by(AudioCollectionModel.created_at)
+                .offset(offset)
+                .limit(limit)
+            )
+            results = await self.session.execute(stmt)
+            models = results.scalars().all()
+            return [self._map_model_to_collection(model) for model in models]
+        except SQLAlchemyError as e:
+            raise ReadingError(
+                entity_name=AudioCollection.__name__, entity_id=user_id, original_error=e
+            ) from e

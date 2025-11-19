@@ -1,3 +1,5 @@
+from typing import Literal
+
 from datetime import datetime
 from uuid import UUID
 
@@ -30,7 +32,7 @@ class Collection(BaseModel):
     id: UUID
     user_id: UUID
     topic: str
-    status: str
+    status: Literal["new", "uploaded", "frozen"]
     record_count: int
     records: list[Record]
     created_at: datetime

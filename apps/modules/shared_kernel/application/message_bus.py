@@ -16,5 +16,5 @@ class MessageBus(ABC):
 
 
 class LogMessageBus(MessageBus):
-    async def send(self, message: Message, **kwargs) -> None:  # noqa: PLR6301
+    async def send(self, message: Message, **kwargs) -> None:  # noqa: ARG002, PLR6301
         logger.info("Publish message %s", message.model_dump())
