@@ -54,6 +54,15 @@ class SaluteSpeechSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SALUTE_SPEECH")
 
 
+class JWTSettings(BaseSettings):
+    secret_key: str = "<SECRET_KEY>"
+    algorithm: str = "HS256"
+    access_token_expires_in_minutes: int = 15
+    refresh_token_expires_in_days: int = 7
+
+    model_config = SettingsConfigDict(env_prefix="JWT_")
+
+
 class AppSettings(BaseSettings):
     port: int = 8000
     host: str = "localhost"
@@ -71,6 +80,7 @@ class Settings(BaseSettings):
     minio: MinioSettings = MinioSettings()
     rabbitmq: RabbitMQSettings = RabbitMQSettings()
     salute_speech: SaluteSpeechSettings = SaluteSpeechSettings()
+    jwt: JWTSettings = JWTSettings()
 
 
 settings: Final[Settings] = Settings()

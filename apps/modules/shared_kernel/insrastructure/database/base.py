@@ -28,14 +28,16 @@ sessionmaker: Final[async_sessionmaker[AsyncSession]] = async_sessionmaker(
 StrNullable = Annotated[str | None, mapped_column(nullable=True)]
 StringArray = Annotated[list[str], mapped_column(ARRAY(String))]
 StrUnique = Annotated[str, mapped_column(unique=True)]
+StrUniqueNullable = Annotated[str, mapped_column(unique=True, nullable=True)]
 StrText = Annotated[str, mapped_column(Text, nullable=False)]
 TextNullable = Annotated[str | None, mapped_column(Text, nullable=True)]
-PostgresUUID = Annotated[UUID, mapped_column(PG_UUID(as_uuid=True), unique=False)]
-PostgresUUIDNullable = Annotated[
+UUIDField = Annotated[UUID, mapped_column(PG_UUID(as_uuid=True), unique=False)]
+UUIDFieldNullable = Annotated[
     UUID | None, mapped_column(PG_UUID(as_uuid=True), unique=True, nullable=True)
 ]
 DatetimeNullable = Annotated[datetime | None, mapped_column(DateTime, nullable=True)]
-DictJson = Annotated[dict[str, Any], mapped_column(JSONB)]
+JsonField = Annotated[dict[str, Any], mapped_column(JSONB)]
+JsonFieldNullable = Annotated[dict[str, Any], mapped_column(JSONB, nullable=True)]
 
 
 class Base(AsyncAttrs, DeclarativeBase):

@@ -71,8 +71,8 @@ class RemovingFailedError(AppError):
         )
 
 
-class DuplicateError(AppError):
-    """Дублирование сущности"""
+class ConflictError(AppError):
+    """Конфликт связанный с целостностью данных"""
 
     def __init__(
             self,
@@ -81,9 +81,9 @@ class DuplicateError(AppError):
             original_error: Exception | None = None,
     ) -> None:
         super().__init__(
-            message=f"{entity_name} already exists",
+            message=f"Data conflict for {entity_name}",
             type=ErrorType.CONFLICT,
-            code="DUPLICATE_ENTITY",
+            code=f"{entity_name.upper()}_CONFLICT",
             details=details,
             original_error=original_error
         )

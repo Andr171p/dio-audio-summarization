@@ -1,31 +1,36 @@
 __all__ = (
     "Base",
+    "DataMapper",
     "DatetimeNullable",
-    "DictJson",
-    "PostgresUUID",
-    "PostgresUUIDNullable",
+    "JsonField",
+    "JsonFieldNullable",
     "SQLAlchemyRepository",
     "SQLAlchemyUnitOfWork",
     "StrNullable",
     "StrText",
     "StrUnique",
+    "StrUniqueNullable",
     "StringArray",
     "TextNullable",
+    "UUIDField",
+    "UUIDFieldNullable",
     "sessionmaker",
 )
 
 from .base import (
     Base,
     DatetimeNullable,
-    DictJson,
-    PostgresUUID,
-    PostgresUUIDNullable,
+    JsonField,
+    JsonFieldNullable,
     StringArray,
     StrNullable,
     StrText,
     StrUnique,
+    StrUniqueNullable,
     TextNullable,
+    UUIDField,
+    UUIDFieldNullable,
     sessionmaker,
 )
-from .repository import SQLAlchemyRepository
+from .repository import DataMapper, SQLAlchemyRepository
 from .uow import SQLAlchemyUnitOfWork

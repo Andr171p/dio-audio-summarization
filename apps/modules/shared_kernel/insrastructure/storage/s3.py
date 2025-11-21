@@ -13,7 +13,7 @@ from ...application.exceptions import (
     RemovingFailedError,
     UploadingFailedError,
 )
-from ...file_managment import File, FilePart, Filepath
+from ...file_management import File, FilePart, Filepath
 
 logger = logging.getLogger(__name__)
 

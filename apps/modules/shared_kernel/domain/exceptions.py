@@ -6,6 +6,7 @@ from enum import StrEnum
 
 class ErrorType(StrEnum):
     """Тип доменной ошибки"""
+    UNAUTHORIZED = "unauthorized"
     VALIDATION_ERROR = "validation_error"
     NOT_FOUND = "not_found"
     CONFLICT = "conflict"
@@ -48,3 +49,17 @@ class AppError(Exception, ABC):
             "message": self.message,
             "details": self.details,
         }
+
+
+class InvariantViolationError(AppError):
+    """Нарушение состояния инварианта"""
+
+    def __init__(
+            self, message: str, entity_name: str, details: dict[str, Any] | None = None
+    ) -> None:
+        super().__init__(
+            message=message,
+            type=ErrorType.INVARIANT_VIOLATION,
+            code=f"{entity_name.upper()}_INVARIANT_VIOLATION",
+            details=details
+        )

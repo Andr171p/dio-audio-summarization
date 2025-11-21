@@ -1,13 +1,16 @@
+from typing import Any
+
+from abc import abstractmethod
 from uuid import UUID
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...application.exceptions import (
+    ConflictError,
     CreationError,
     DeleteError,
-    DuplicateError,
     ReadingError,
     UpdateError,
 )
@@ -15,21 +18,34 @@ from ...domain import Entity
 from .base import Base
 
 
+class DataMapper[EntityT: Entity, ModelT: Any]:
+    entity_class: type[EntityT]
+    model_class: type[ModelT]
+
+    @abstractmethod
+    def model_to_entity(self, model: ModelT) -> EntityT: ...
+
+    @abstractmethod
+    def entity_to_model(self, entity: EntityT) -> ModelT: ...
+
+
 class SQLAlchemyRepository[EntityT: Entity, ModelT: Base]:
     entity: type[EntityT]
     model: type[ModelT]
+    data_mapper: type[DataMapper[EntityT, ModelT]]
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def create(self, entity: EntityT) -> EntityT:
         try:
-            stmt = insert(self.model).values(**entity.model_dump()).returning(self.model)
-            result = await self.session.execute(stmt)
-            model = result.scalar_one()
-            return self.entity.model_validate(model)
+            model = self.data_mapper.entity_to_model(entity)
+            self.session.add(model)
+            await self.session.commit()
+            await self.session.refresh(model)
+            return self.data_mapper.model_to_entity(model)
         except IntegrityError as e:
-            raise DuplicateError(entity_name=self.entity.__name__, original_error=e) from e
+            raise ConflictError(entity_name=self.entity.__name__, original_error=e) from e
         except SQLAlchemyError as e:
             raise CreationError(entity_name=self.entity.__name__, original_error=e) from e
 
@@ -38,7 +54,7 @@ class SQLAlchemyRepository[EntityT: Entity, ModelT: Base]:
             stmt = select(self.model).where(self.model.id == id)
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
-            return self.entity.model_validate(model) if model else None
+            return self.data_mapper.model_to_entity(model) if model else None
         except SQLAlchemyError as e:
             raise ReadingError(
                 entity_id=id, entity_name=self.entity.__name__, original_error=e
@@ -54,9 +70,9 @@ class SQLAlchemyRepository[EntityT: Entity, ModelT: Base]:
             )
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
-            return self.entity.model_validate(model) if model else None
+            return self.data_mapper.model_to_entity(model) if model else None
         except IntegrityError as e:
-            raise DuplicateError(entity_name=self.entity.__name__, original_error=e) from e
+            raise ConflictError(entity_name=self.entity.__name__, original_error=e) from e
         except SQLAlchemyError as e:
             raise UpdateError(
                 entity_id=id, entity_name=self.entity.__name__, original_error=e

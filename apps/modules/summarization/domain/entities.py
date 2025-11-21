@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 from pydantic import Field, PositiveInt, model_validator
 
 from modules.shared_kernel.domain import AggregateRoot, Entity
-from modules.shared_kernel.file_managment import File, Filepath
+from modules.shared_kernel.file_management import File, Filepath
 from modules.shared_kernel.utils import current_datetime
 
 from .events import (

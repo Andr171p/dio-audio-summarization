@@ -7,6 +7,7 @@ __all__ = (
     "ErrorType",
     "Event",
     "EventT",
+    "InvariantViolationError",
     "StrPrimitive",
     "ValueObject",
 )
@@ -14,5 +15,5 @@ __all__ = (
 from .commands import Command, CommandT
 from .entities import AggregateRoot, Entity
 from .event import Event, EventT
-from .exceptions import AppError, ErrorType
+from .exceptions import AppError, ErrorType, InvariantViolationError
 from .value_objects import StrPrimitive, ValueObject
