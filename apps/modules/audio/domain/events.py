@@ -3,7 +3,7 @@ from typing import ClassVar
 from uuid import UUID
 
 from modules.shared_kernel.domain import Event
-from modules.shared_kernel.file_management import Filepath
+from modules.shared_kernel.files import Filepath
 
 
 class RecordAddedEvent(Event):

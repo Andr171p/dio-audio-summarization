@@ -3,7 +3,7 @@ from enum import StrEnum
 from pydantic import PositiveInt
 
 from modules.shared_kernel.domain import ValueObject
-from modules.shared_kernel.file_management import FileMetadata, FileType
+from modules.shared_kernel.files import FileMetadata, FileType
 
 
 class TaskStatus(StrEnum):

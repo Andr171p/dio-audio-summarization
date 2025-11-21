@@ -2,7 +2,7 @@ from typing import Protocol
 
 from collections.abc import AsyncIterable
 
-from ..file_management import File, FilePart, Filepath
+from ..files import File, FilePart, Filepath
 
 EXPIRES_IN = 3600
 

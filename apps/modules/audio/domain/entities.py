@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt
 
 from modules.shared_kernel.domain import AggregateRoot, Entity
-from modules.shared_kernel.file_management import FileMetadata, FilePart, Filepath, FileType
+from modules.shared_kernel.files import FileMetadata, FilePart, Filepath, FileType
 from modules.shared_kernel.utils import current_datetime
 
 from .commands import AddRecordCommand, CreateCollectionCommand
