@@ -1,36 +1,35 @@
 __all__ = (
     "Base",
     "DataMapper",
-    "DatetimeNullable",
+    "DateTimeNull",
     "JsonField",
-    "JsonFieldNullable",
+    "JsonFieldNull",
     "SQLAlchemyRepository",
     "SQLAlchemyUnitOfWork",
-    "StrNullable",
+    "StrArray",
+    "StrNull",
     "StrText",
     "StrUnique",
-    "StrUniqueNullable",
-    "StringArray",
-    "TextNullable",
+    "StrUniqueNull",
+    "TextNull",
     "UUIDField",
-    "UUIDFieldNullable",
+    "UUIDFieldNull",
     "sessionmaker",
 )
 
-from .base import (
-    Base,
-    DatetimeNullable,
+from .base import Base, sessionmaker
+from .primitives import (
+    DateTimeNull,
     JsonField,
-    JsonFieldNullable,
-    StringArray,
-    StrNullable,
+    JsonFieldNull,
+    StrArray,
+    StrNull,
     StrText,
     StrUnique,
-    StrUniqueNullable,
-    TextNullable,
+    StrUniqueNull,
+    TextNull,
     UUIDField,
-    UUIDFieldNullable,
-    sessionmaker,
+    UUIDFieldNull,
 )
 from .repository import DataMapper, SQLAlchemyRepository
 from .uow import SQLAlchemyUnitOfWork

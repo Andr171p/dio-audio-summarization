@@ -41,7 +41,7 @@ class SQLAlchemyRepository[EntityT: Entity, ModelT: Base]:
         try:
             model = self.data_mapper.entity_to_model(entity)
             self.session.add(model)
-            await self.session.commit()
+            await self.session.flush()
             await self.session.refresh(model)
             return self.data_mapper.model_to_entity(model)
         except IntegrityError as e:

@@ -11,19 +11,20 @@ from .event import EventT
 
 class Entity(BaseModel, ABC):
     """Базовая модель для доменной сущности"""
-    id: UUID = Field(default_factory=uuid4)
-    created_at: datetime = Field(default_factory=current_datetime)
 
     model_config = ConfigDict(from_attributes=True)
 
-
-class AggregateRoot(Entity, ABC):
-    """Корень агрегата"""
     _events: list[EventT] = PrivateAttr(default_factory=list)
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True, validate_assignment=True, frozen=False
-    )
+    id: UUID = Field(default_factory=uuid4)
+    created_at: datetime = Field(default_factory=current_datetime)
+
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def __eq__(self, other: "Entity") -> bool:
+        """Сущности считаются эквивалентными если их id равны"""
+        return self.id == other.id
 
     def _register_event(self, event: EventT) -> None:
         """Добавление нового доменного события"""
@@ -33,3 +34,11 @@ class AggregateRoot(Entity, ABC):
         """Собирает и возвращает все накопленные события"""
         while self._events:
             yield self._events.pop(0)
+
+
+class AggregateRoot(Entity, ABC):
+    """Корень агрегата"""
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True, validate_assignment=True, frozen=False
+    )

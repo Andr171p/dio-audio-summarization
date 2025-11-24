@@ -13,7 +13,7 @@ class EmailLetter(ValueObject):
     subject: str
     sender_email: EmailStr
     recipient_emails: list[EmailStr]
-    html_body: str
+    body_markup: str
     cc: list[EmailStr] = Field(default_factory=list)
     bcc: list[EmailStr] = Field(default_factory=list)
     reply_to: EmailStr | None = None

@@ -6,6 +6,7 @@ from enum import StrEnum
 
 class ErrorType(StrEnum):
     """Тип доменной ошибки"""
+
     UNAUTHORIZED = "unauthorized"
     VALIDATION_ERROR = "validation_error"
     NOT_FOUND = "not_found"

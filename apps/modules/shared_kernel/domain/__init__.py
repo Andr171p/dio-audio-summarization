@@ -16,4 +16,5 @@ from .commands import Command, CommandT
 from .entities import AggregateRoot, Entity
 from .event import Event, EventT
 from .exceptions import AppError, ErrorType, InvariantViolationError
-from .value_objects import StrPrimitive, ValueObject
+from .primitives import StrPrimitive
+from .value_objects import ValueObject
