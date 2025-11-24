@@ -4,7 +4,9 @@ import os
 from enum import StrEnum
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt
+from pydantic import Field, PositiveInt
+
+from .domain import ValueObject
 
 
 class AudioFormat(StrEnum):
@@ -67,7 +69,7 @@ class AudioFormat(StrEnum):
         return self in self.lossless_formats()
 
 
-class AudioSegment(BaseModel):
+class AudioSegment(ValueObject):
     """Сегмент (часть) от большой аудио записи.
 
     Attributes:
@@ -89,8 +91,6 @@ class AudioSegment(BaseModel):
     channels: PositiveInt | None = None
     samplerate: PositiveInt | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
-
-    model_config = ConfigDict(from_attributes=True, frozen=True)
 
     @property
     def is_last(self) -> bool:

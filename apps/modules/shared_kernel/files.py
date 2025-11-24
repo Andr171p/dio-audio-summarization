@@ -4,9 +4,9 @@ from datetime import datetime
 from enum import StrEnum
 
 import aiohttp
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveFloat
+from pydantic import Field, NonNegativeInt, PositiveFloat
 
-from .domain import StrPrimitive
+from .domain import StrPrimitive, ValueObject
 from .utils import current_datetime
 
 # Пороговое значения для размера файла, если больше порога, то файл большой
@@ -53,7 +53,7 @@ class Filepath(StrPrimitive):
                 raise ValueError(f"Reserved filename: {part}")
 
 
-class File(BaseModel):
+class File(ValueObject):
     """Файловый объект (использовать для работы с хранилищем и прочей работы с файлами)
 
     Attributes:
@@ -66,8 +66,6 @@ class File(BaseModel):
     filesize: PositiveFloat
     content: bytes
     uploaded_at: datetime = Field(default_factory=current_datetime)
-
-    model_config = ConfigDict(from_attributes=True, frozen=True)
 
 
 class FilePart(File):
@@ -82,13 +80,14 @@ class FilePart(File):
 
 class FileType(StrEnum):
     """Тип контента файла"""
+
     AUDIO = "audio"
     DOCUMENT = "document"
     VIDEO = "video"
     IMAGE = "image"
 
 
-class FileMetadata(BaseModel):
+class FileMetadata(ValueObject):
     """Файловые метаданные
 
     Attributes:
@@ -98,13 +97,12 @@ class FileMetadata(BaseModel):
         type: Тип файла, например: image, document, video, audio, ...
         uploaded_at: Дата и время загрузки файла
     """
+
     filename: str
     filesize: PositiveFloat
     format: str
     type: FileType
     uploaded_at: datetime = Field(default_factory=current_datetime)
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 async def download_from_presigned_url(presigned_url: str, chunk_size: int) -> AsyncIterable[bytes]:

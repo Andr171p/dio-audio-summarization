@@ -55,7 +55,7 @@ class Task(Entity):
 
     @property
     def execution_time(self) -> float | None:
-        """Время выполнения задачи в секундах. Возвращает None если задача не окончена."""
+        """Время выполнения задачи в секундах. Возвращает None если задача не окончена"""
         if self.status not in {TaskStatus.COMPLETED, TaskStatus.FAILED}:
             return None
         return round(self.finished_at.timestamp() - self.started_at.timestamp(), 2)
