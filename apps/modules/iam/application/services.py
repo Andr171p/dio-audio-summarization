@@ -69,3 +69,7 @@ class CredentialsAuthNService:
             "User %s, email %s successfully authenticated", authed_user.id, authed_user.email
         )
         return token_pair
+
+
+class VKAuthNService:
+    ...

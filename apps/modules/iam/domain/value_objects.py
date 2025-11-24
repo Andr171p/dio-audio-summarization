@@ -9,13 +9,25 @@ from modules.shared_kernel.domain import ValueObject
 
 
 class UserStatus(StrEnum):
-    PENDING = "pending"
+    """Статус пользователя в системе
+
+    Attributes:
+        PENDING_EMAIL_VERIFICATION: Зарегистрирован через credentials, пока не подтвердил email.
+        EMAIL_VERIFIED: Подтверждён email
+        (автоматически устанавливается при регистрации через социальные сети)
+        BANNED: Бан пользователя (ограничение действий)
+        DELETED: Пользователь был удалён
+    """
+
+    PENDING_EMAIL_VERIFICATION = "pending"
     EMAIL_VERIFIED = "email_verified"
     BANNED = "banned"
     DELETED = "deleted"
 
 
 class UserCredentials(ValueObject):
+    """Учетные данные пользователя"""
+
     username: str
     email: EmailStr
     password: str
@@ -37,6 +49,7 @@ class UserRole(StrEnum):
         USER: Обычный зарегистрированный пользователь.
         GUEST: Пользователь с неподтверждённым email.
     """
+
     SUPERADMIN = "superadmin"
     ADMIN = "admin"
     MANAGER = "manager"
@@ -53,25 +66,14 @@ class ProfileInfo(TypedDict):
     avatar_url: NotRequired[HttpUrl]
 
 
-class AuthProvider(EmailStr):
-    """Социальные сети для регистрации и аутентификации пользователей"""
+class AuthProvider(StrEnum):
+    """Возможные провайдеры для регистрации и аутентификации пользователей"""
+
     CREDENTIALS = "credentials"
     VK = "VK"
     Yandex = "Yandex"
     MAX = "Max"
     GOSUSLUGI = "Gosuslugi"
-
-
-class CredentialsRegistration(ValueObject):
-    username: str
-    email: EmailStr
-    password: str
-
-
-class SocialAccountRegistration(ValueObject):
-    provider: AuthProvider
-    user_id: str
-    profile_info: ProfileInfo
 
 
 class TokenType(StrEnum):

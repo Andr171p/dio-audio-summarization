@@ -1,6 +1,4 @@
 __all__ = (
-    "CredentialsRegistration",
-    "SocialAccountRegistration",
     "TokenPair",
     "TokenType",
     "User",
@@ -12,8 +10,6 @@ __all__ = (
 
 from .entities import User
 from .value_objects import (
-    CredentialsRegistration,
-    SocialAccountRegistration,
     TokenPair,
     TokenType,
     UserClaims,

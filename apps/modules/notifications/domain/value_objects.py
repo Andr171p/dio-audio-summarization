@@ -1,6 +1,6 @@
 from pydantic import EmailStr, Field
 
-from .domain import ValueObject
+from modules.shared_kernel.domain import ValueObject
 
 
 class LetterAttachment(ValueObject):

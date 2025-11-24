@@ -21,6 +21,7 @@ dependencies = [
     "passlib>=1.7.4",
     "pedalboard>=0.9.19",
     "pyjwt>=2.10.1",
+    "pytest>=9.0.1",
     "python-ffmpeg>=2.0.12",
     "pytz>=2025.2",
     "requests>=2.32.5",
@@ -156,4 +157,44 @@ ignore_names = [
     "put",
     "delete",
     "head"
+]
+
+# Pytest
+[tool.pytest.ini_options]
+testpaths = "tests"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-v",
+    "--tb=short",
+    "--color=yes"
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "functional: Functional tests",
+    "slow: Slow running tests",
+    "db: Database tests",
+    "async: Async tests"
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__pycache__/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError"
 ]

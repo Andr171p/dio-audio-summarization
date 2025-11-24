@@ -2,7 +2,7 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, status
 
 from modules.iam.application import CredentialsRegistrationUseCase
-from modules.iam.domain import CredentialsRegistration
+from modules.iam.domain import UserCredentials
 
 router = APIRouter(prefix="/registration", tags=["Registration"], route_class=DishkaRoute)
 
@@ -14,6 +14,6 @@ router = APIRouter(prefix="/registration", tags=["Registration"], route_class=Di
     summary="Регистрация нового пользователя",
 )
 async def register(
-        registration: CredentialsRegistration, usecase: FromDishka[CredentialsRegistrationUseCase]
+        credentials: UserCredentials, usecase: FromDishka[CredentialsRegistrationUseCase]
 ) -> ...:
     ...

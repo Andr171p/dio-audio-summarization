@@ -1,20 +1,46 @@
 from pydantic import EmailStr
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 
-from modules.shared_kernel.application.exceptions import ConflictError, CreationError, ReadingError
+from modules.shared_kernel.application.exceptions import ReadingError
 from modules.shared_kernel.insrastructure.database import DataMapper, SQLAlchemyRepository
 
 from ...application import UserRepository
 from ...domain import User
-from .models import UserModel
+from .models import SocialAccountModel, UserModel
 
 
 class UserDataMapper(DataMapper[User, UserModel]):
-    def model_to_entity(self, model: UserModel) -> User: ...
+    def model_to_entity(self, model: UserModel) -> User:  # noqa: PLR6301
+        return User.model_validate({
+            "id": model.id,
+            "username": model.username,
+            "email": model.email,
+            "password_hash": model.password_hash,
+            "status": model.status,
+            "role": model.role,
+            "social_accounts": model.social_accounts,
+            "auth_providers": model.auth_providers,
+        })
 
-    def entity_to_model(self, entity: User) -> UserModel: ...
+    def entity_to_model(self, entity: User) -> UserModel:  # noqa: PLR6301
+        return UserModel(
+            id=entity.id,
+            username=entity.username,
+            email=entity.email,
+            password_hash=entity.password_hash,
+            status=entity.status,
+            role=entity.role,
+            social_accounts=[
+                SocialAccountModel(
+                    provider=social_account.provider,
+                    user_id=social_account.user_id,
+                    profile_info=social_account.profile_info,
+                )
+                for social_account in entity.social_accounts
+            ],
+            auth_providers=entity.auth_providers,
+        )
 
 
 class SQLAlchemyUserRepository(UserRepository, SQLAlchemyRepository[User, UserModel]):

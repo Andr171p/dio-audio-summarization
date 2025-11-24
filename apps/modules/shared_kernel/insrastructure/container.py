@@ -5,8 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.dev import settings as dev_settings
 
-from ..application import MessageBus, Storage, UnitOfWork
-from .broker import RabbitMQMessageBus, broker
+from ..application import Storage, UnitOfWork
 from .database import SQLAlchemyUnitOfWork, sessionmaker
 from .storage import S3Storage
 
@@ -29,7 +28,3 @@ class SharedKernelProvider(Provider):
             access_key=dev_settings.minio.user,
             secret_key=dev_settings.minio.password,
         )
-
-    @provide(scope=Scope.APP)
-    def provide_message_bus(self) -> MessageBus:  # noqa: PLR6301
-        return RabbitMQMessageBus(broker)
