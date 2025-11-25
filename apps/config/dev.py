@@ -63,7 +63,17 @@ class JWTSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JWT_")
 
 
+class VKSettings(BaseSettings):
+    client_id: str = "<CLIENT_ID>"
+    client_secret: str = "<CLIENT_SECRET>"
+    base_url: str = "https://id.vk.ru"
+    redirect_uri: str = "http://localhost:8000/vk/callback"
+
+    model_config = SettingsConfigDict(env_prefix="VK_")
+
+
 class AppSettings(BaseSettings):
+    name: str = "Alyosha AI"
     port: int = 8000
     host: str = "localhost"
     title: str = "<TITLE>"
@@ -81,6 +91,7 @@ class Settings(BaseSettings):
     rabbitmq: RabbitMQSettings = RabbitMQSettings()
     salute_speech: SaluteSpeechSettings = SaluteSpeechSettings()
     jwt: JWTSettings = JWTSettings()
+    vk: VKSettings = VKSettings()
 
 
 settings: Final[Settings] = Settings()

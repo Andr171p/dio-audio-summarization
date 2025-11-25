@@ -1,4 +1,6 @@
 __all__ = (
+    "AuthProvider",
+    "SocialAccount",
     "TokenPair",
     "TokenType",
     "User",
@@ -8,8 +10,9 @@ __all__ = (
     "UserStatus",
 )
 
-from .entities import User
+from .entities import SocialAccount, User
 from .value_objects import (
+    AuthProvider,
     TokenPair,
     TokenType,
     UserClaims,

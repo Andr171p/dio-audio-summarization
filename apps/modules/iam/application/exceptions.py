@@ -25,3 +25,16 @@ class UnauthorizedError(AppError):
             code="UNAUTHORIZED",
             details=details,
         )
+
+
+class OAuthSecurityError(AppError):
+    pass
+
+
+class InvalidStateError(OAuthSecurityError):
+    """Неверный state сессии авторизации"""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(
+            message=message, type=ErrorType.VALIDATION_ERROR, code="INVALID_STATE", details=details
+        )

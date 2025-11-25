@@ -1,0 +1,149 @@
+from typing import Literal, NotRequired, TypedDict
+
+import base64
+import hashlib
+import secrets
+
+import aiohttp
+
+from .base import STATUS_302_REDIRECT
+
+
+class Tokens(TypedDict):
+    """Набор токенов"""
+
+    access_token: str
+    refresh_token: str
+    id_token: str
+    token_type: str
+    expires_in: int
+    user_id: int | str
+    state: str
+    scope: str
+
+
+class PublicInfo(TypedDict):
+    """Публичная информация о пользователе"""
+
+    user_id: str | int
+    first_name: str
+    last_name: str
+    phone: str
+    avatar: str
+    email: str
+
+
+class UserInfo(TypedDict):
+    """Персональная информация о пользователе"""
+
+    user_id: str | int
+    first_name: str
+    last_name: str
+    avatar: str
+    sex: Literal[1, 2]
+    verified: bool
+    birthday: str
+    phone: NotRequired[str]
+    email: NotRequired[str]
+
+
+def generate_pkce_params() -> tuple[str, str]:
+    """Генерация code_verifier и code_challenge"""
+
+    # Генерация случайного code_verifier (43-128 символов)
+    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode("utf-8").rstrip("=")
+    # Создание code_challenge методом S256
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode("utf-8")).digest()
+    ).decode("utf-8").rstrip("=")
+    return code_verifier, code_challenge
+
+
+class VKOAuthClient:
+    def __init__(
+            self,
+            client_id: str,
+            base_url: str,
+            redirect_uri: str,
+            scope: str = "email",
+    ) -> None:
+        self._client_id = client_id
+        self._base_url = base_url
+        self._redirect_uri = redirect_uri
+        self._scope = scope
+
+    async def generate_authorization_url(self) -> dict[str, str | bool]:
+        # Генерация PKCE параметров
+        code_verifier, code_challenge = generate_pkce_params()
+        # Генерация state для защиты от CSRF
+        state = secrets.token_urlsafe(32)
+        params = {
+            "response_type": "code",
+            "client_id": self._client_id,
+            "redirect_uri": self._redirect_uri,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+            "scope": self._scope,
+            "state": state,
+        }
+        try:
+            async with aiohttp.ClientSession(base_url=self._base_url) as session, session.get(
+                url="/authorize", params=params, allow_redirects=False
+            ) as response:
+                if response.status == STATUS_302_REDIRECT:
+                    return {
+                        "success": True,
+                        "authorization_url": response.headers.get("Location"),
+                        "code_verifier": code_verifier,
+                        "state": state,
+                    }
+        except ...:
+            ...
+
+    async def get_tokens(
+            self, authorization_code: str, code_verifier: str, state: str, device_id: str
+    ) -> Tokens:
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        payload = {
+            "grant_type": "authorization_code",
+            "client_id": self._client_id,
+            "redirect_uri": self._redirect_uri,
+            "code": authorization_code,
+            "code_verifier": code_verifier,
+            "device_id": device_id,
+            "state": state,
+        }
+        try:
+            async with aiohttp.ClientSession(base_url=self._base_url) as session, session.post(
+                url="oauth2/auth", headers=headers, data=payload
+            ) as response:
+                response.raise_for_status()
+                return await response.json()
+        except ...:
+            ...
+
+    async def get_public_info(self, id_token: str) -> PublicInfo:
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        payload = {"client_id": self._client_id, "id_token": id_token}
+        try:
+            async with aiohttp.ClientSession(base_url=self._base_url) as session, session.post(
+                url="oauth2/public_info", headers=headers, data=payload
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
+            return data["user"]
+        except ...:
+            ...
+
+    async def get_userinfo(self, access_token: str) -> UserInfo:
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        payload = {"client_id": self._client_id, "access_token": access_token}
+        try:
+            async with aiohttp.ClientSession(base_url=self._base_url) as session, session.post(
+                url="/user_info", headers=headers, data=payload
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
+                return data["user"]
+        except ...:
+            ...

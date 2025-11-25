@@ -1,7 +1,5 @@
 from typing import Any, Self
 
-from uuid import UUID
-
 from pydantic import EmailStr, Field, model_validator
 
 from config.dev import settings
@@ -29,12 +27,20 @@ class SocialAccount(Entity):
     """
 
     provider: AuthProvider
-    user_id: UUID
+    user_id: str
     profile_info: ProfileInfo
 
     @property
     def email(self) -> EmailStr | None:
         return self.profile_info.get("email")
+
+    @classmethod
+    def create(cls, provider: AuthProvider, user_id: str, **kwargs) -> Self:
+        return cls(
+            provider=provider,
+            user_id=user_id,
+            profile_info={"user_id": user_id, **kwargs},
+        )
 
 
 class User(Entity):
@@ -123,7 +129,23 @@ class User(Entity):
         return user
 
     @classmethod
-    def register_by_social_account(cls, social_account: SocialAccount) -> Self: ...
+    def register_by_social_account(cls, social_account: SocialAccount) -> Self:
+        status, role = (
+            (UserStatus.PENDING_EMAIL_VERIFICATION, UserRole.GUEST)
+            if social_account.email is None else
+            (UserStatus.EMAIL_VERIFIED, UserRole.USER)
+        )
+        user = cls(
+            email=social_account.email,
+            status=status,
+            role=role,
+            social_accounts=[social_account],
+            auth_providers={social_account.provider}
+        )
+        cls._register_event(
+            user, UserRegisteredEvent(user_id=user.id, user_status=user.status, email=user.email)
+        )
+        return user
 
     def authenticate_by_credentials(self, credentials: UserCredentials) -> Self:
         if self.status in {UserStatus.BANNED, UserStatus.DELETED}:

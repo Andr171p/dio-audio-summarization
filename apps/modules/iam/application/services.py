@@ -5,11 +5,21 @@ from datetime import timedelta
 
 from config.dev import settings
 
-from ..domain import TokenPair, TokenType, UserClaims, UserCredentials
+from ..domain import (
+    AuthProvider,
+    SocialAccount,
+    TokenPair,
+    TokenType,
+    User,
+    UserClaims,
+    UserCredentials,
+)
 from ..domain.exceptions import InvalidTokenError, TokenExpiredError
+from ..infrastructure.oauth import vk_oauth_client
 from ..utils.common import expires_at
 from ..utils.security import decode_token, issue_token
-from .exceptions import UnauthorizedError
+from .dto import OAuthSession, VKCallback
+from .exceptions import InvalidStateError, UnauthorizedError
 from .repositories import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -72,4 +82,35 @@ class CredentialsAuthNService:
 
 
 class VKAuthNService:
-    ...
+    def __init__(self, repository: UserRepository) -> None:
+        self._repository = repository
+
+    async def register(self, callback: VKCallback, session: OAuthSession) -> ...:
+        if callback.state != session.state:
+            raise InvalidStateError("Invalid auth session state!")
+        tokens = await vk_oauth_client.get_tokens(
+            authorization_code=callback.authorization_code,
+            code_verifier=session.code_verifier,
+            state=callback.state,
+            device_id=callback.device_id,
+        )
+        userinfo = await vk_oauth_client.get_userinfo(tokens["access_token"])
+        social_account = SocialAccount.create(
+            provider=AuthProvider.VK, user_id=userinfo["user_id"], **userinfo
+        )
+        user = User.register_by_social_account(social_account)
+        await self._repository.create(user)
+
+    async def authenticate(self, callback: VKCallback, session: OAuthSession) -> TokenPair:
+        if callback.state != session.state:
+            raise InvalidStateError("Invalid auth session state!")
+        tokens = await vk_oauth_client.get_tokens(
+            authorization_code=callback.authorization_code,
+            code_verifier=session.code_verifier,
+            state=callback.state,
+            device_id=callback.device_id,
+        )
+        userinfo = await vk_oauth_client.get_userinfo(tokens["access_token"])
+        user = await self._repository.get_by_social_account(AuthProvider.VK, userinfo["user_id"])
+        payload = user.to_jwt_payload()
+        return generate_token_pair(payload)
