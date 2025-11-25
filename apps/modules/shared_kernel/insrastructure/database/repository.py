@@ -22,11 +22,13 @@ class DataMapper[EntityT: Entity, ModelT: Any]:
     entity_class: type[EntityT]
     model_class: type[ModelT]
 
+    @classmethod
     @abstractmethod
-    def model_to_entity(self, model: ModelT) -> EntityT: ...
+    def model_to_entity(cls, model: ModelT) -> EntityT: ...
 
+    @classmethod
     @abstractmethod
-    def entity_to_model(self, entity: EntityT) -> ModelT: ...
+    def entity_to_model(cls, entity: EntityT) -> ModelT: ...
 
 
 class SQLAlchemyRepository[EntityT: Entity, ModelT: Base]:
@@ -58,6 +60,20 @@ class SQLAlchemyRepository[EntityT: Entity, ModelT: Base]:
         except SQLAlchemyError as e:
             raise ReadingError(
                 entity_id=id, entity_name=self.entity.__name__, original_error=e
+            ) from e
+
+    async def read_all(self, page: int, limit: int) -> list[EntityT]:
+        try:
+            offset = (page - 1) * limit
+            stmt = select(self.model).order_by(self.model.created_at).offset(offset).limit(limit)
+            results = await self.session.execute(stmt)
+            models = results.scalars().all()
+            return [self.data_mapper.model_to_entity(model) for model in models]
+        except SQLAlchemyError as e:
+            raise ReadingError(
+                entity_name=self.entity.__name__,
+                entity_id=f"page={page}, limit={limit}",
+                original_error=e
             ) from e
 
     async def update(self, id: UUID, **kwargs) -> EntityT | None:  # noqa: A002

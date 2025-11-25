@@ -17,10 +17,10 @@ class UnitOfWork(ABC):
         """Начало транзакции"""
 
     async def __aexit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc: BaseException | None,
-            tb: TracebackType | None,
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
     ) -> None:
         """Базовая реализация, может быть переопределена в дальнейшем"""
         if exc_type is not None:

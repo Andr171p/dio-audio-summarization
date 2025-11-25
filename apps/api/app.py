@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_fastapi_app() -> FastAPI:
-    app = FastAPI(title="DIO audio summarization API")
+    app = FastAPI(title="Alyosha AI API")
     app.include_router(router)
     app.add_middleware(
         CORSMiddleware,

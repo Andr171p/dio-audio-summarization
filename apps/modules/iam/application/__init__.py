@@ -1,10 +1,10 @@
 __all__ = (
     "CredentialsAuthNService",
-    "CredentialsRegistrationUseCase",
+    "RegisterByCredentialsUseCase",
     "UserRepository",
     "verify_token",
 )
 
 from .repositories import UserRepository
 from .services import CredentialsAuthNService, verify_token
-from .usecases import CredentialsRegistrationUseCase
+from .usecases import RegisterByCredentialsUseCase

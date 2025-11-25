@@ -1,4 +1,7 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..domain import TokenType
 
 import logging
 from datetime import timedelta
@@ -10,7 +13,6 @@ from passlib.context import CryptContext
 from config.dev import settings
 from modules.shared_kernel.utils import current_datetime
 
-from ..domain import TokenType
 from ..domain.exceptions import InvalidTokenError, TokenExpiredError
 
 # Хеширование паролей
@@ -45,7 +47,7 @@ def verify_secret(plain_secret: str, hashed_secret: str) -> bool:
 
 
 def issue_token(
-        token_type: TokenType,
+        token_type: "TokenType",
         payload: dict[str, Any],
         expires_in: timedelta,
 ) -> str:

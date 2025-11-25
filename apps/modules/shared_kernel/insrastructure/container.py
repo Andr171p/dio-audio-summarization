@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.dev import settings as dev_settings
+from config.dev import settings
 
 from ..application import Storage, UnitOfWork
 from .database import SQLAlchemyUnitOfWork, sessionmaker
@@ -23,8 +23,8 @@ class SharedKernelProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_storage(self) -> Storage:  # noqa: PLR6301
         return S3Storage(
-            endpoint_url=dev_settings.minio.url,
-            bucket=dev_settings.minio.bucket,
-            access_key=dev_settings.minio.user,
-            secret_key=dev_settings.minio.password,
+            endpoint_url=settings.minio.url,
+            bucket=settings.minio.bucket,
+            access_key=settings.minio.user,
+            secret_key=settings.minio.password,
         )

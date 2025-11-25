@@ -6,9 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from modules.shared_kernel.application.exceptions import (
+    ConflictError,
     CreationError,
     DeleteError,
-    DuplicateError,
     ReadingError,
     UpdateError,
 )
@@ -68,7 +68,7 @@ class SQLCollectionRepository(CollectionRepository):
             return self._map_model_to_collection(collection_model)
         except IntegrityError as e:
             await self.session.rollback()
-            raise DuplicateError(
+            raise ConflictError(
                 entity_name=AudioCollection.__name__, original_error=e
             ) from e
         except SQLAlchemyError as e:
@@ -108,7 +108,7 @@ class SQLCollectionRepository(CollectionRepository):
             return AudioCollection.model_validate(model) if model is not None else None
         except IntegrityError as e:
             await self.session.rollback()
-            raise DuplicateError(
+            raise ConflictError(
                 entity_name=AudioCollection.__name__, original_error=e
             ) from e
         except SQLAlchemyError as e:
@@ -154,7 +154,7 @@ class SQLCollectionRepository(CollectionRepository):
             )
         except IntegrityError as e:
             await self.session.rollback()
-            raise DuplicateError(entity_name=AudioRecord.__name__, original_error=e) from e
+            raise ConflictError(entity_name=AudioRecord.__name__, original_error=e) from e
         except SQLAlchemyError as e:
             await self.session.rollback()
             raise CreationError(entity_name=AudioRecord.__name__, original_error=e) from e

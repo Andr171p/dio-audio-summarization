@@ -19,7 +19,7 @@ class UserStatus(StrEnum):
         DELETED: Пользователь был удалён
     """
 
-    PENDING_EMAIL_VERIFICATION = "pending"
+    PENDING_EMAIL_VERIFICATION = "pending_email_verification"
     EMAIL_VERIFIED = "email_verified"
     BANNED = "banned"
     DELETED = "deleted"
@@ -31,11 +31,6 @@ class UserCredentials(ValueObject):
     username: str
     email: EmailStr
     password: str
-
-
-class HashedUserCredentials(ValueObject):
-    email: EmailStr
-    password_hash: str
 
 
 class UserRole(StrEnum):
@@ -105,3 +100,4 @@ class UserClaims(JWTClaims):
     username: str | None = None
     email: EmailStr | None = None
     status: UserStatus | None = None
+    role: UserRole | None = None

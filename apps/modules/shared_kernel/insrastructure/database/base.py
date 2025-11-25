@@ -14,10 +14,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from config.dev import settings as dev_settings
+from config.dev import settings
 
 engine: Final[AsyncEngine] = create_async_engine(
-    url=dev_settings.postgres.sqlalchemy_url, echo=True
+    url=settings.postgres.sqlalchemy_url, echo=True
 )
 sessionmaker: Final[async_sessionmaker[AsyncSession]] = async_sessionmaker(
     engine, class_=AsyncSession, autoflush=False, expire_on_commit=False

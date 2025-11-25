@@ -1,4 +1,4 @@
-from typing import Any, Self, overload
+from typing import Any, Self
 
 from uuid import UUID
 
@@ -38,11 +38,27 @@ class SocialAccount(Entity):
 
 
 class User(Entity):
+    """Модель пользователя.
+
+    Примечания:
+     - Не использовать model_dump или model_dump_json для маппинга полей,
+       т.к секретные данные не будут сериализованы.
+
+    Attributes:
+        email: Адрес электронной почты пользователя
+        username: Имя пользователя (как он будет отображаться в дисплеи)
+        password_hash: Хэш пароля пользователя (имеется только при регистрации через credentials)
+        role: Системная роль пользователя
+        status: Системный статус пользователя
+        social_accounts: Учётные записи внешних провайдеров
+        auth_providers: Способы, которые может использовать пользователь для аутентификации
+    """
+
     email: EmailStr | None = None
     username: str
+    password_hash: str | None = Field(default=None, exclude=True)
     role: UserRole
     status: UserStatus
-    password_hash: str | None = None
     social_accounts: list[SocialAccount] = Field(default_factory=list)
     auth_providers: set[AuthProvider] = Field(default_factory=set)
 
@@ -73,11 +89,11 @@ class User(Entity):
         """Получение полезной нагрузки для JWT"""
         return {
             "iss": settings.app.url,
-            "sub": self.id,
+            "sub": f"{self.id}",
             "username": self.username,
-            "email": self.email,
-            "status": self.status,
-            "role": self.role,
+            "email": f"{self.email}",
+            "status": self.status.value,
+            "role": self.role.value,
             **kwargs,
         }
 
@@ -91,9 +107,8 @@ class User(Entity):
             UserRegisteredEvent(user_id=self.id, user_status=self.status, email=self.email)
         )
 
-    @overload
     @classmethod
-    def register(cls, credentials: UserCredentials) -> Self:
+    def register_by_credentials(cls, credentials: UserCredentials) -> Self:
         user = cls(
             email=credentials.email,
             username=credentials.username,
@@ -107,13 +122,8 @@ class User(Entity):
         )
         return user
 
-    @overload
     @classmethod
-    def register(cls, social_account: SocialAccount) -> Self: pass
-
-    def register(
-            self, registration: UserCredentials | SocialAccount
-    ) -> Self: ...
+    def register_by_social_account(cls, social_account: SocialAccount) -> Self: ...
 
     def authenticate_by_credentials(self, credentials: UserCredentials) -> Self:
         if self.status in {UserStatus.BANNED, UserStatus.DELETED}:

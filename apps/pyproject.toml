@@ -9,6 +9,7 @@ dependencies = [
     "aiopath>=0.7.7",
     "aiosmtplib>=5.0.0",
     "alembic>=1.17.1",
+    "argon2-cffi>=25.1.0",
     "asyncpg>=0.30.0",
     "dishka>=1.7.2",
     "fastapi[all]>=0.120.4",

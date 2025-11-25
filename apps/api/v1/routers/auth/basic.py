@@ -48,7 +48,7 @@ async def verify(body: TokenVerify) -> UserClaims:
     return verify_token(body.token)
 
 
-@router.post(
+'''@router.post(
     path="/forgot-password",
     status_code=status.HTTP_200_OK,
     response_model=...,
@@ -63,4 +63,4 @@ async def forgot_password() -> ...: ...
     response_model=...,
     summary="Сброс и смена пароля"
 )
-async def reset_password() -> ...: ...
+async def reset_password() -> ...: ...'''

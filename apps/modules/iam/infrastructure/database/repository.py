@@ -11,7 +11,8 @@ from .models import SocialAccountModel, UserModel
 
 
 class UserDataMapper(DataMapper[User, UserModel]):
-    def model_to_entity(self, model: UserModel) -> User:  # noqa: PLR6301
+    @classmethod
+    def model_to_entity(cls, model: UserModel) -> User:
         return User.model_validate({
             "id": model.id,
             "username": model.username,
@@ -23,7 +24,8 @@ class UserDataMapper(DataMapper[User, UserModel]):
             "auth_providers": model.auth_providers,
         })
 
-    def entity_to_model(self, entity: User) -> UserModel:  # noqa: PLR6301
+    @classmethod
+    def entity_to_model(cls, entity: User) -> UserModel:
         return UserModel(
             id=entity.id,
             username=entity.username,
@@ -43,7 +45,7 @@ class UserDataMapper(DataMapper[User, UserModel]):
         )
 
 
-class SQLAlchemyUserRepository(UserRepository, SQLAlchemyRepository[User, UserModel]):
+class SQLAlchemyUserRepository(SQLAlchemyRepository[User, UserModel], UserRepository):
     entity = User
     model = UserModel
     data_mapper = UserDataMapper
@@ -53,7 +55,7 @@ class SQLAlchemyUserRepository(UserRepository, SQLAlchemyRepository[User, UserMo
             stmt = select(self.model).where(self.model.email == email)
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
-            return self.data_mapper.model_to_entity(model)
+            return None if model is None else self.data_mapper.model_to_entity(model)
         except SQLAlchemyError as e:
             raise ReadingError(
                 entity_name=self.entity.__name__, entity_id=email, original_error=e
