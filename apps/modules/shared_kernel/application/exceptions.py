@@ -162,3 +162,58 @@ class DeleteError(AppError):
             details=details,
             original_error=original_error
         )
+
+
+class CacheHitError(AppError):
+    """Ошибка при получении данных из кеша"""
+
+    def __init__(
+            self,
+            key: str,
+            details: dict[str, Any] | None = None,
+            original_error: Exception | None = None
+    ) -> None:
+        super().__init__(
+            message=f"Error occurred while cache receiving by key {key}",
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
+            code="CACHE_HIT_FAILED",
+            original_error=original_error,
+            details=details
+        )
+
+
+class CacheSetError(AppError):
+    """Ошибка при добавлении данных в кеш"""
+
+    def __init__(
+        self,
+        key: str,
+        value: dict[str, Any],
+        details: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
+    ) -> None:
+        super().__init__(
+            message=f"Error occurred while cache set by key {key}, value {value}",
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
+            code="CACHE_SET_FAILED",
+            original_error=original_error,
+            details=details,
+        )
+
+
+class CacheInvalidationError(AppError):
+    """Ошибка при инвалидации данных из кеша"""
+
+    def __init__(
+        self,
+        key: str,
+        details: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
+    ) -> None:
+        super().__init__(
+            message=f"Error occurred while cache invalidation by key {key}",
+            type=ErrorType.EXTERNAL_DEPENDENCY_ERROR,
+            code="CACHE_INVALIDATION_FAILED",
+            original_error=original_error,
+            details=details,
+        )

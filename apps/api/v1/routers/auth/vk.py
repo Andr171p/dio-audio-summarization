@@ -2,7 +2,7 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, Request, status
 
 from modules.iam.application import VKAuthNService
-from modules.iam.application.dto import OAuthSession, VKCallback
+from modules.iam.application.dto import PKCESession, VKCallback
 from modules.iam.domain import TokenPair
 from modules.iam.infrastructure.oauth import vk_oauth_client
 
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/vk", tags=["VK Auth"], route_class=DishkaRoute)
 
 
 @router.get(
-    path="/authorization_url",
+    path="/init",
     status_code=status.HTTP_200_OK,
     summary="Инициация аутентификации через ВК"
 )
@@ -39,7 +39,7 @@ async def register(callback: VKCallback) -> ...: ...
 async def authenticate(
         request: Request, callback: VKCallback, service: FromDishka[VKAuthNService]
 ) -> TokenPair:
-    session = OAuthSession(
+    session = PKCESession(
         code_verifier=request.session.get("code_verifier"), state=request.session.get("state")
     )
     return await service.authenticate(callback, session)
