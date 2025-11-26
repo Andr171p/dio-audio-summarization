@@ -4,6 +4,7 @@ import logging
 from datetime import timedelta
 
 from config.dev import settings
+from modules.shared_kernel.application import KeyValueCache, MessageBus, UnitOfWork
 
 from ..domain import (
     AuthProvider,
@@ -18,8 +19,13 @@ from ..domain.exceptions import InvalidTokenError, TokenExpiredError
 from ..infrastructure.oauth import vk_oauth_client
 from ..utils.common import expires_at
 from ..utils.security import decode_token, issue_token
-from .dto import PKCESession, VKCallback
-from .exceptions import InvalidPKCEError, UnauthorizedError
+from .dto import OAuthFlowInit, PKCESession, VKCallback
+from .exceptions import (
+    AlreadyRegisteredError,
+    InvalidPKCEError,
+    RegistrationRequiredError,
+    UnauthorizedError,
+)
 from .repositories import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -61,17 +67,44 @@ def verify_token(token: str) -> UserClaims:
     return UserClaims.model_validate({"active": True, **payload})
 
 
-class CredentialsAuthNService:
+class CredentialsAuthService:
     """Сервис для аутентификации пользователей через учётные данные"""
 
-    def __init__(self, repository: UserRepository) -> None:
+    def __init__(
+            self, uow: UnitOfWork, repository: UserRepository, message_bus: MessageBus
+    ) -> None:
+        self._uow = uow
         self._repository = repository
+        self._message_bus = message_bus
+
+    async def register(self, credentials: UserCredentials) -> User:
+        async with self._uow.transactional() as uow:
+            user = await self._repository.get_by_email(credentials.email)
+            if user is None:
+                user = User.register_by_credentials(credentials)
+                await self._repository.create(user)
+            elif user is not None and not user.is_registration_completed():
+                user.repeat_email_verification()
+            else:
+                raise AlreadyRegisteredError(
+                    f"User with email {user.email} already registered",
+                    details={"email": user.email, "username": user.username}
+                )
+            await uow.commit()
+            for event in user.collect_events():
+                await self._message_bus.send(event)
+            return user
 
     async def authenticate(self, credentials: UserCredentials) -> TokenPair:
         logger.debug(
             "Start authentication by credentials for user with email %s", credentials.email
         )
         user = await self._repository.get_by_email(credentials.email)
+        if user is None:
+            raise RegistrationRequiredError(
+                "Complete registration to continue",
+                details={"provider": "credentials", "email": credentials.email}
+            )
         authed_user = user.authenticate_by_credentials(credentials)
         payload = authed_user.to_jwt_payload()
         token_pair = generate_token_pair(payload)
@@ -81,36 +114,100 @@ class CredentialsAuthNService:
         return token_pair
 
 
-class VKAuthNService:
-    def __init__(self, repository: UserRepository) -> None:
+class VKAuthService:
+    def __init__(
+            self,
+            uow: UnitOfWork,
+            repository: UserRepository,
+            cache: KeyValueCache[PKCESession],
+            message_bus: MessageBus
+    ) -> None:
+        self._uow = uow
         self._repository = repository
+        self._cache = cache
+        self._message_bus = message_bus
 
-    async def register(self, callback: VKCallback, session: PKCESession) -> ...:
-        if callback.state != session.state:
-            raise InvalidPKCEError("Invalid auth session state!")
+    async def init_oauth_flow(self) -> OAuthFlowInit:
+        """Инициация OAuth 2.0 потока.
+
+        :returns: URL адрес для авторизации пользователя через ВК + идентификатор PKCE сессии.
+
+        Примечание: рекомендуемо сохранять идентификатор PKCE сессии в Cookie.
+        """
+
+        auth_data = await vk_oauth_client.generate_authorization_url()
+        pkce_session = PKCESession(
+            code_verifier=auth_data["code_verifier"], state=auth_data["state"]
+        )
+        pkce_session_id = str(pkce_session.session_id)
+        await self._cache.set(pkce_session_id, pkce_session)
+        return OAuthFlowInit(
+            authorization_url=auth_data["authorization_url"], pkce_session_id=pkce_session_id
+        )
+
+    async def _handle_callback(self, session_id: str, callback: VKCallback) -> dict[str, Any]:
+        """Обработка callback данных после авторизации пользователя через ВК.
+
+        :param session_id: Идентификатор PKCE сессии.
+        :param callback: Callback после авторизации.
+        :returns: Информация об ВК аккаунте пользователя.
+        :raises InvalidPKCEError - при несоответствии PKCE параметров.
+        """
+
+        if not session_id:
+            raise InvalidPKCEError("Session is missing!")
+        pkce_session = await self._cache.get(session_id)
+        if pkce_session is None:
+            raise InvalidPKCEError("Session expired or invalid!")
+        if pkce_session.state != callback.state:
+            await self._cache.invalidate(session_id)
+            raise InvalidPKCEError("Invalid state parameter!")
         tokens = await vk_oauth_client.get_tokens(
             authorization_code=callback.authorization_code,
-            code_verifier=session.code_verifier,
+            code_verifier=pkce_session.code_verifier,
             state=callback.state,
             device_id=callback.device_id,
         )
-        userinfo = await vk_oauth_client.get_userinfo(tokens["access_token"])
-        social_account = SocialAccount.create(
-            provider=AuthProvider.VK, user_id=userinfo["user_id"], **userinfo
-        )
-        user = User.register_by_social_account(social_account)
-        await self._repository.create(user)
+        return await vk_oauth_client.get_userinfo(tokens["access_token"])
 
-    async def authenticate(self, callback: VKCallback, session: PKCESession) -> TokenPair:
-        if callback.state != session.state:
-            raise InvalidPKCEError("Invalid auth session state!")
-        tokens = await vk_oauth_client.get_tokens(
-            authorization_code=callback.authorization_code,
-            code_verifier=session.code_verifier,
-            state=callback.state,
-            device_id=callback.device_id,
-        )
-        userinfo = await vk_oauth_client.get_userinfo(tokens["access_token"])
+    async def register(self, session_id: str, callback: VKCallback) -> User:
+        userinfo = await self._handle_callback(session_id, callback)
+        user_id = userinfo["user_id"]
+        async with self._uow.transactional() as uow:
+            user = await self._repository.get_by_social_account(AuthProvider.VK, user_id)
+            if user is not None:
+                raise AlreadyRegisteredError(
+                    f"User already registered by VK, user_id {user_id}",
+                    details={
+                        "email": userinfo.get("email"),
+                        "first_name": userinfo.get("first_name"),
+                        "last_name": userinfo.get("last_name"),
+                    }
+                )
+            social_account = SocialAccount.create(
+                provider=AuthProvider.VK, user_id=userinfo["user_id"], **userinfo
+            )
+            user = User.register_by_social_account(social_account)
+            await self._repository.create(user)
+            await uow.commit()
+        for event in user.collect_events():
+            await self._message_bus.send(event)
+        return user
+
+    async def authenticate(self, session_id: str, callback: VKCallback) -> TokenPair:
+        """Аутентифицирует пользователя.
+
+        :param session_id: Идентификатор PKCE сессии.
+        :param callback: Callback после авторизации через ВК.
+        :returns: Пара токенов access + refresh
+        """
+
+        userinfo = await self._handle_callback(session_id, callback)
         user = await self._repository.get_by_social_account(AuthProvider.VK, userinfo["user_id"])
+        if user is None:
+            raise RegistrationRequiredError(
+                "Complete registration to continue",
+                details={"provider": "VK", "user_id": userinfo["user_id"]}
+            )
         payload = user.to_jwt_payload()
         return generate_token_pair(payload)

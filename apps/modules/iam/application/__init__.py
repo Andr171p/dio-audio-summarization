@@ -1,11 +1,9 @@
 __all__ = (
-    "CredentialsAuthNService",
-    "RegisterByCredentialsUseCase",
+    "CredentialsAuthService",
     "UserRepository",
-    "VKAuthNService",
+    "VKAuthService",
     "verify_token",
 )
 
 from .repositories import UserRepository
-from .services import CredentialsAuthNService, VKAuthNService, verify_token
-from .usecases import RegisterByCredentialsUseCase
+from .services import CredentialsAuthService, VKAuthService, verify_token

@@ -1,10 +1,9 @@
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Request, Response, status
 
-from modules.iam.application import VKAuthNService
-from modules.iam.application.dto import PKCESession, VKCallback
+from modules.iam.application import VKAuthService
+from modules.iam.application.dto import VKCallback
 from modules.iam.domain import TokenPair
-from modules.iam.infrastructure.oauth import vk_oauth_client
 
 router = APIRouter(prefix="/vk", tags=["VK Auth"], route_class=DishkaRoute)
 
@@ -14,11 +13,17 @@ router = APIRouter(prefix="/vk", tags=["VK Auth"], route_class=DishkaRoute)
     status_code=status.HTTP_200_OK,
     summary="Инициация аутентификации через ВК"
 )
-async def get_auth_url(request: Request) -> str:
-    auth_data = await vk_oauth_client.generate_authorization_url()
-    request.session["code_verifier"] = auth_data["code_verifier"]
-    request.session["state"] = auth_data["state"]
-    return auth_data["authorization_url"]
+async def init(response: Response, service: FromDishka[VKAuthService]) -> str:
+    flow = await service.init_oauth_flow()
+    response.set_cookie(
+        key="pkce_session_id",
+        value=flow.pkce_session_id,
+        httponly=False,  # Только для теста
+        secure=False,  # Только для теста
+        samesite="lax",
+        max_age=600  # 10 минут
+    )
+    return flow.authorization_url
 
 
 @router.post(
@@ -27,7 +32,11 @@ async def get_auth_url(request: Request) -> str:
     response_model=...,
     summary="Регистрация пользователя"
 )
-async def register(callback: VKCallback) -> ...: ...
+async def register(
+        request: Request, callback: VKCallback, service: FromDishka[VKAuthService]
+) -> ...:
+    session_id = request.cookies.get("pkce_session_id")
+    return await service.register(session_id, callback)
 
 
 @router.post(
@@ -37,9 +46,12 @@ async def register(callback: VKCallback) -> ...: ...
     summary="Аутентификация пользователя"
 )
 async def authenticate(
-        request: Request, callback: VKCallback, service: FromDishka[VKAuthNService]
+        request: Request,
+        response: Response,
+        callback: VKCallback,
+        service: FromDishka[VKAuthService]
 ) -> TokenPair:
-    session = PKCESession(
-        code_verifier=request.session.get("code_verifier"), state=request.session.get("state")
-    )
-    return await service.authenticate(callback, session)
+    session_id = request.cookies.get("pkce_session_id")
+    token_pair = await service.authenticate(session_id, callback)
+    response.delete_cookie("pkce_session_id")
+    return token_pair

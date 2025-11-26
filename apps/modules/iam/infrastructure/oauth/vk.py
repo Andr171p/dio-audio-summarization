@@ -13,6 +13,14 @@ from .base import STATUS_302_REDIRECT
 logger = logging.getLogger(__name__)
 
 
+class AuthorizationData(TypedDict):
+    """Данные для инициации авторизации пользователя через ВК"""
+
+    authorization_url: str
+    code_verifier: str
+    state: str
+
+
 class Tokens(TypedDict):
     """Набор токенов"""
 
@@ -88,7 +96,7 @@ class VKOAuthClient:
         self._redirect_uri = redirect_uri
         self._scope = scope
 
-    async def generate_authorization_url(self) -> dict[str, str | bool]:
+    async def generate_authorization_url(self) -> AuthorizationData:
         """Инициация ВК OAuth 2.0 authorization flow,
         генерирует URL для авторизации пользователя используя его ВК аккаунт.
         """
@@ -113,7 +121,6 @@ class VKOAuthClient:
             ) as response:
                 if response.status == STATUS_302_REDIRECT:
                     return {
-                        "success": True,
                         "authorization_url": response.headers.get("Location"),
                         "code_verifier": code_verifier,
                         "state": state,

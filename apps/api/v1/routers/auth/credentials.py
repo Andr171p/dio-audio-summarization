@@ -1,11 +1,23 @@
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, status
 
-from modules.iam.application import CredentialsAuthNService, verify_token
+from modules.iam.application import CredentialsAuthService, verify_token
 from modules.iam.application.dto import TokenVerify
-from modules.iam.domain import TokenPair, UserClaims, UserCredentials
+from modules.iam.domain import TokenPair, User, UserClaims, UserCredentials
 
-router = APIRouter(prefix="", tags=["Basic Auth"], route_class=DishkaRoute)
+router = APIRouter(prefix="", tags=["Credentials Auth"], route_class=DishkaRoute)
+
+
+@router.post(
+    path="/register",
+    status_code=status.HTTP_201_CREATED,
+    response_model=User,
+    summary="Регистрация нового пользователя"
+)
+async def register(
+        credentials: UserCredentials, service: FromDishka[CredentialsAuthService]
+) -> User:
+    return await service.register(credentials)
 
 
 @router.post(
@@ -15,7 +27,7 @@ router = APIRouter(prefix="", tags=["Basic Auth"], route_class=DishkaRoute)
     summary="Аутентификация пользователя"
 )
 async def login(
-        credentials: UserCredentials, service: FromDishka[CredentialsAuthNService]
+        credentials: UserCredentials, service: FromDishka[CredentialsAuthService]
 ) -> TokenPair:
     return await service.authenticate(credentials)
 

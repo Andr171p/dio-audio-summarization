@@ -12,13 +12,19 @@ class TokenVerify(DTO):
     token: str
 
 
+class OAuthFlowInit(DTO):
+    """Инициированный поток OAuth 2.0"""
+
+    authorization_url: str
+    pkce_session_id: str
+
+
 class PKCESession(DTO):
     """PKCE сессия авторизации через OAuth2 flow"""
 
     session_id: UUID = Field(default_factory=uuid4)
     state: str
     code_verifier: str
-    redirect_uri: str
     created_at: PositiveFloat = Field(default_factory=current_datetime().timestamp)
 
 

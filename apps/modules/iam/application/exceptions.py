@@ -15,6 +15,18 @@ class AlreadyRegisteredError(AppError):
         )
 
 
+class RegistrationRequiredError(AppError):
+    """Требуется регистрация"""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(
+            message=message,
+            type=ErrorType.NOT_FOUND,
+            code="REGISTRATION_REQUIRED",
+            details=details,
+        )
+
+
 class UnauthorizedError(AppError):
     """Ошибка авторизации"""
 
