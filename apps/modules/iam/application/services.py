@@ -19,7 +19,7 @@ from ..infrastructure.oauth import vk_oauth_client
 from ..utils.common import expires_at
 from ..utils.security import decode_token, issue_token
 from .dto import OAuthSession, VKCallback
-from .exceptions import InvalidStateError, UnauthorizedError
+from .exceptions import InvalidPKCEError, UnauthorizedError
 from .repositories import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ class VKAuthNService:
 
     async def register(self, callback: VKCallback, session: OAuthSession) -> ...:
         if callback.state != session.state:
-            raise InvalidStateError("Invalid auth session state!")
+            raise InvalidPKCEError("Invalid auth session state!")
         tokens = await vk_oauth_client.get_tokens(
             authorization_code=callback.authorization_code,
             code_verifier=session.code_verifier,
@@ -103,7 +103,7 @@ class VKAuthNService:
 
     async def authenticate(self, callback: VKCallback, session: OAuthSession) -> TokenPair:
         if callback.state != session.state:
-            raise InvalidStateError("Invalid auth session state!")
+            raise InvalidPKCEError("Invalid auth session state!")
         tokens = await vk_oauth_client.get_tokens(
             authorization_code=callback.authorization_code,
             code_verifier=session.code_verifier,

@@ -27,14 +27,22 @@ class UnauthorizedError(AppError):
         )
 
 
-class OAuthSecurityError(AppError):
-    pass
+class OAuthError(AppError):
+    """Базовая ошибка при использовании OAuth провайдера"""
+
+    def __init__(self, message: str, code: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(
+            message=message, type=ErrorType.EXTERNAL_DEPENDENCY_ERROR, code=code, details=details
+        )
 
 
-class InvalidStateError(OAuthSecurityError):
+class InvalidPKCEError(OAuthError):
     """Неверный state сессии авторизации"""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(
-            message=message, type=ErrorType.VALIDATION_ERROR, code="INVALID_STATE", details=details
+            message=message,
+            type=ErrorType.VALIDATION_ERROR,
+            code="INVALID_PKCE_PARAMS",
+            details=details
         )

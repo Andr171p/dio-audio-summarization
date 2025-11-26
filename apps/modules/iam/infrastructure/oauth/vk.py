@@ -2,11 +2,15 @@ from typing import Literal, NotRequired, TypedDict
 
 import base64
 import hashlib
+import logging
 import secrets
 
 import aiohttp
 
+from ...application.exceptions import OAuthError
 from .base import STATUS_302_REDIRECT
+
+logger = logging.getLogger(__name__)
 
 
 class Tokens(TypedDict):
@@ -34,13 +38,25 @@ class PublicInfo(TypedDict):
 
 
 class UserInfo(TypedDict):
-    """Персональная информация о пользователе"""
+    """Персональная информация о пользователе
+
+    Attributes:
+        user_id: Идентификатор пользователя в ВК, пример: '1234567890'
+        first_name: Имя пользователя, пример: 'Ivan'
+        last_name: Фамилия пользователя, пример: 'Ivanov'
+        avatar: Ссылка на фото профиля
+        sex: Пол пользователя, где 1 - женский, 2 - мужской, 0 - пол не указан
+        verified: Статус верификации пользователя
+        birthday: Дата рождения пользователя, пример: '01.01.2000'
+        phone: Номер телефона пользователя (если запрошен через scope)
+        email: Адрес электронной почты (если запрошен через scope)
+    """
 
     user_id: str | int
     first_name: str
     last_name: str
     avatar: str
-    sex: Literal[1, 2]
+    sex: Literal[0, 1, 2]
     verified: bool
     birthday: str
     phone: NotRequired[str]
@@ -73,6 +89,10 @@ class VKOAuthClient:
         self._scope = scope
 
     async def generate_authorization_url(self) -> dict[str, str | bool]:
+        """Инициация ВК OAuth 2.0 authorization flow,
+        генерирует URL для авторизации пользователя используя его ВК аккаунт.
+        """
+
         # Генерация PKCE параметров
         code_verifier, code_challenge = generate_pkce_params()
         # Генерация state для защиты от CSRF
@@ -87,6 +107,7 @@ class VKOAuthClient:
             "state": state,
         }
         try:
+            logger.debug("Initiate VK OAuth 2.0 authorization flow")
             async with aiohttp.ClientSession(base_url=self._base_url) as session, session.get(
                 url="/authorize", params=params, allow_redirects=False
             ) as response:
@@ -97,12 +118,20 @@ class VKOAuthClient:
                         "code_verifier": code_verifier,
                         "state": state,
                     }
-        except ...:
-            ...
+        except aiohttp.ClientResponseError as e:
+            error_message = (
+                "Error occurred while authorization URL generation, "
+                f"status: {e.status}, "
+                f"message: {e.message}"
+            )
+            logger.exception(error_message)
+            raise OAuthError(error_message, code="VK_AUTHORIZATION_URL_GENERATION_FAILED") from e
 
     async def get_tokens(
             self, authorization_code: str, code_verifier: str, state: str, device_id: str
     ) -> Tokens:
+        """Получение токенов пользователя"""
+
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         payload = {
             "grant_type": "authorization_code",
@@ -119,8 +148,13 @@ class VKOAuthClient:
             ) as response:
                 response.raise_for_status()
                 return await response.json()
-        except ...:
-            ...
+        except aiohttp.ClientResponseError as e:
+            error_message = (
+                "Error occurred while receiving tokens, "
+                f"status: {e.status}, message: {e.message}"
+            )
+            logger.exception(error_message)
+            raise OAuthError(error_message, code="VK_TOKEN_RECEIVING_FAILED") from e
 
     async def get_public_info(self, id_token: str) -> PublicInfo:
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -132,18 +166,37 @@ class VKOAuthClient:
                 response.raise_for_status()
                 data = await response.json()
             return data["user"]
-        except ...:
-            ...
+        except aiohttp.ClientResponseError as e:
+            error_message = (
+                "Error occurred while receiving user public info, "
+                f"status: {e.status}, "
+                f"message: {e.message}"
+            )
+            logger.exception(error_message)
+            raise OAuthError(error_message, code="VK_PUBLIC_INFO_RECEIVING_FAILED") from e
 
     async def get_userinfo(self, access_token: str) -> UserInfo:
+        """Получение информации о пользователе
+
+        :param access_token: ACCESS токен полученный методом `get_tokens`
+        :returns: Запрашиваемая информация о пользователе
+        """
+
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         payload = {"client_id": self._client_id, "access_token": access_token}
         try:
+            logger.debug("User info is requested")
             async with aiohttp.ClientSession(base_url=self._base_url) as session, session.post(
                 url="/user_info", headers=headers, data=payload
             ) as response:
                 response.raise_for_status()
                 data = await response.json()
                 return data["user"]
-        except ...:
-            ...
+        except aiohttp.ClientResponseError as e:
+            error_message = (
+                "Error occurred while receiving user personal info, "
+                f"status: {e.status}, "
+                f"message: {e.message}"
+            )
+            logger.exception(error_message)
+            raise OAuthError(error_message, code="VK_USER_INFO_RECEIVING_FAILED") from e
