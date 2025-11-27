@@ -1,12 +1,13 @@
 from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
 
 from modules.shared_kernel.application.exceptions import ReadingError
 from modules.shared_kernel.insrastructure.database import DataMapper, SQLAlchemyRepository
 
 from ...application import UserRepository
-from ...domain import User
+from ...domain import AuthProvider, User
 from .models import SocialAccountModel, UserModel
 
 
@@ -36,7 +37,7 @@ class UserDataMapper(DataMapper[User, UserModel]):
             social_accounts=[
                 SocialAccountModel(
                     provider=social_account.provider,
-                    user_id=social_account.user_id,
+                    social_user_id=social_account.social_user_id,
                     profile_info=social_account.profile_info,
                 )
                 for social_account in entity.social_accounts
@@ -59,4 +60,25 @@ class SQLAlchemyUserRepository(SQLAlchemyRepository[User, UserModel], UserReposi
         except SQLAlchemyError as e:
             raise ReadingError(
                 entity_name=self.entity.__name__, entity_id=email, original_error=e
+            ) from e
+
+    async def get_by_social_account(
+            self, provider: AuthProvider, social_user_id: str
+    ) -> User | None:
+        try:
+            stmt = (
+                select(self.model)
+                .join(SocialAccountModel)
+                .where(
+                    (SocialAccountModel.provider == provider) &
+                    (SocialAccountModel.social_user_id == social_user_id)
+                )
+                .options(joinedload(self.model.social_accounts))
+            )
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
+            return None if model is None else self.data_mapper.model_to_entity(model)
+        except SQLAlchemyError as e:
+            raise ReadingError(
+                entity_name=self.entity.__name__, entity_id=social_user_id, original_error=e
             ) from e

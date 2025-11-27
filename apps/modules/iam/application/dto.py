@@ -1,7 +1,8 @@
 from uuid import UUID, uuid4
 
-from pydantic import Field, PositiveFloat
+from pydantic import EmailStr, Field, PositiveFloat
 
+from modules.iam.domain import UserRole, UserStatus
 from modules.shared_kernel.application import DTO
 from modules.shared_kernel.utils import current_datetime
 
@@ -34,3 +35,13 @@ class VKCallback(DTO):
     authorization_code: str
     state: str
     device_id: str
+
+
+class CurrentUser(DTO):
+    """Авторизованный пользователь, который делает запрос"""
+
+    user_id: UUID
+    username: str | None = None
+    email: EmailStr | None = None
+    status: UserStatus
+    role: UserRole

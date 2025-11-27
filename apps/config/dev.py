@@ -45,6 +45,17 @@ class RabbitMQSettings(BaseSettings):
         return ...
 
 
+class RedisSettings(BaseSettings):
+    host: str = "localhost"
+    port: int = 6379
+
+    model_config = SettingsConfigDict(env_prefix="REDIS_")
+
+    @property
+    def url(self) -> str:
+        return f"redis://{self.host}:{self.port}/0"
+
+
 class SaluteSpeechSettings(BaseSettings):
     apikey: str = "<APIKEY>"
     scope: str = "<SCOPE>"
@@ -67,9 +78,15 @@ class VKSettings(BaseSettings):
     client_id: str = "<CLIENT_ID>"
     client_secret: str = "<CLIENT_SECRET>"
     base_url: str = "https://id.vk.ru"
-    redirect_uri: str = "http://localhost:8000/vk/callback"
+    redirect_uri: str = "http://localhost:8000/api/v1/auth/vk/callback"
 
     model_config = SettingsConfigDict(env_prefix="VK_")
+
+
+class OAuthSettings(BaseSettings):
+    pkce_session_expires_in_minutes: int = 10
+
+    model_config = SettingsConfigDict(env_prefix="OAUTH_")
 
 
 class AppSettings(BaseSettings):
@@ -89,9 +106,11 @@ class Settings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     minio: MinioSettings = MinioSettings()
     rabbitmq: RabbitMQSettings = RabbitMQSettings()
+    redis: RedisSettings = RedisSettings()
     salute_speech: SaluteSpeechSettings = SaluteSpeechSettings()
     jwt: JWTSettings = JWTSettings()
     vk: VKSettings = VKSettings()
+    oauth: OAuthSettings = OAuthSettings()
 
 
 settings: Final[Settings] = Settings()

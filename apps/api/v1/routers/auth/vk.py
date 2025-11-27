@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, Response, status
 
 from modules.iam.application import VKAuthService
 from modules.iam.application.dto import VKCallback
-from modules.iam.domain import TokenPair
+from modules.iam.domain import TokenPair, User
 
 router = APIRouter(prefix="/vk", tags=["VK Auth"], route_class=DishkaRoute)
 
@@ -29,12 +29,12 @@ async def init(response: Response, service: FromDishka[VKAuthService]) -> str:
 @router.post(
     path="/register",
     status_code=status.HTTP_201_CREATED,
-    response_model=...,
+    response_model=User,
     summary="Регистрация пользователя"
 )
 async def register(
         request: Request, callback: VKCallback, service: FromDishka[VKAuthService]
-) -> ...:
+) -> User:
     session_id = request.cookies.get("pkce_session_id")
     return await service.register(session_id, callback)
 

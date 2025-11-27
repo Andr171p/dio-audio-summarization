@@ -22,12 +22,12 @@ class SocialAccount(Entity):
 
     Attributes:
         provider: Тип провайдера аутентификации.
-        user_id: Идентификатор пользователя у внешнего провайдера.
+        social_user_id: Идентификатор пользователя у внешнего провайдера.
         profile_info: Дополнительная информация об аккаунте.
     """
 
     provider: AuthProvider
-    user_id: str
+    social_user_id: str
     profile_info: ProfileInfo
 
     @property
@@ -35,11 +35,11 @@ class SocialAccount(Entity):
         return self.profile_info.get("email")
 
     @classmethod
-    def create(cls, provider: AuthProvider, user_id: str, **kwargs) -> Self:
+    def create(cls, provider: AuthProvider, social_user_id: str, **kwargs) -> Self:
         return cls(
             provider=provider,
-            user_id=user_id,
-            profile_info={"user_id": user_id, **kwargs},
+            social_user_id=social_user_id,
+            profile_info={"user_id": social_user_id, **kwargs},
         )
 
 
@@ -71,6 +71,12 @@ class User(Entity):
     @model_validator(mode="after")
     def _validate_invariant(self) -> Self:
         """Валидация инвариантов"""
+        if self.status == UserStatus.EMAIL_VERIFIED and self.role == UserRole.GUEST:
+            raise InvariantViolationError(
+                "User role can not be `guest`, when status is `email_verified`",
+                entity_name=self.__class__.__name__,
+                details={"user_id": f"{self.id}", "status": self.status, "role": self.role},
+            )
         has_email, has_password_hash = self.email is not None, self.password_hash is not None
         if AuthProvider.CREDENTIALS in self.auth_providers:
             if not has_email:
@@ -78,7 +84,7 @@ class User(Entity):
                     "Email is required for credentials authentication",
                     entity_name=self.__class__.__name__,
                     details={
-                        "user_id": self.id,
+                        "user_id": f"{self.id}",
                         "status": self.status,
                         "auth_providers": self.auth_providers
                     },
@@ -87,7 +93,7 @@ class User(Entity):
                 raise InvariantViolationError(
                     "Password is required for credentials authentication",
                     entity_name=self.__class__.__name__,
-                    details={"user_id": self.id, "status": self.status, "email": self.email},
+                    details={"user_id": f"{self.id}", "status": self.status, "email": self.email},
                 )
         return self
 

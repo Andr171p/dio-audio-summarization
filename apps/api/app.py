@@ -32,7 +32,7 @@ def create_fastapi_app() -> FastAPI:
 
 
 # Маппинг доменных ошибок к HTTP статус кодам
-HTTP_STATUS_CODE_MAP: Final[dict[ErrorType, int]] = {
+HTTP_STATUS_CODE_MAP = {
     ErrorType.NOT_FOUND: status.HTTP_404_NOT_FOUND,
     ErrorType.CONFLICT: status.HTTP_409_CONFLICT,
     ErrorType.VALIDATION_ERROR: status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -48,12 +48,12 @@ HTTP_STATUS_CODE_MAP: Final[dict[ErrorType, int]] = {
 def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(ValidationError)
-    def handle_validation_error(request: Request, exc: ValidationError) -> JSONResponse:
+    def handle_validation_error(request: Request, exc: ValidationError) -> JSONResponse:  # noqa: ARG001
         logger.error(exc)
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=exc.errors())
 
     @app.exception_handler(AppError)
-    def handle_app_error(request: Request, exc: AppError) -> JSONResponse:
+    def handle_app_error(request: Request, exc: AppError) -> JSONResponse:  # noqa: ARG001
         logger.error(exc)
         return JSONResponse(status_code=HTTP_STATUS_CODE_MAP[exc.type], content=exc.to_dict())
 

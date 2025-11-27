@@ -89,7 +89,7 @@ class VKOAuthClient:
             client_id: str,
             base_url: str,
             redirect_uri: str,
-            scope: str = "email",
+            scope: str = "email phone",
     ) -> None:
         self._client_id = client_id
         self._base_url = base_url
@@ -119,12 +119,12 @@ class VKOAuthClient:
             async with aiohttp.ClientSession(base_url=self._base_url) as session, session.get(
                 url="/authorize", params=params, allow_redirects=False
             ) as response:
-                if response.status == STATUS_302_REDIRECT:
-                    return {
-                        "authorization_url": response.headers.get("Location"),
-                        "code_verifier": code_verifier,
-                        "state": state,
-                    }
+                response.raise_for_status()
+                return {
+                    "authorization_url": f"{response.url}",
+                    "code_verifier": code_verifier,
+                    "state": state,
+                }
         except aiohttp.ClientResponseError as e:
             error_message = (
                 "Error occurred while authorization URL generation, "

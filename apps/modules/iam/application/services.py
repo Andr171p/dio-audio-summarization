@@ -84,6 +84,11 @@ class CredentialsAuthService:
                 user = User.register_by_credentials(credentials)
                 await self._repository.create(user)
             elif user is not None and not user.is_registration_completed():
+                logger.info(
+                    "Repeat email verification for %s user with email `%s` "
+                    "and current status `%s`",
+                    user.id, user.email, user.status
+                )
                 user.repeat_email_verification()
             else:
                 raise AlreadyRegisteredError(
@@ -185,7 +190,7 @@ class VKAuthService:
                     }
                 )
             social_account = SocialAccount.create(
-                provider=AuthProvider.VK, user_id=userinfo["user_id"], **userinfo
+                provider=AuthProvider.VK, social_user_id=userinfo["user_id"], **userinfo
             )
             user = User.register_by_social_account(social_account)
             await self._repository.create(user)

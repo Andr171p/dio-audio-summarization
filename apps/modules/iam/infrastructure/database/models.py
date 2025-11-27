@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from modules.shared_kernel.insrastructure.database import Base, JsonField, StrArray, StrUniqueNull
@@ -25,6 +25,11 @@ class SocialAccountModel(Base):
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), unique=False)
     provider: Mapped[str]
+    social_user_id: Mapped[str]
     profile_info: Mapped[JsonField]
 
     user: Mapped["UserModel"] = relationship(back_populates="social_accounts")
+
+    __table_args__ = (
+        UniqueConstraint("provider", "social_user_id", name="social_account_uq"),
+    )
