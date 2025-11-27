@@ -71,9 +71,10 @@ class User(Entity):
     @model_validator(mode="after")
     def _validate_invariant(self) -> Self:
         """Валидация инвариантов"""
-        if self.status == UserStatus.EMAIL_VERIFIED and self.role == UserRole.GUEST:
+
+        if self.status == UserStatus.PENDING_EMAIL_VERIFICATION and self.role != UserRole.GUEST:
             raise InvariantViolationError(
-                "User role can not be `guest`, when status is `email_verified`",
+                "User role only can be `guest`, when status is `pending_email_verification`",
                 entity_name=self.__class__.__name__,
                 details={"user_id": f"{self.id}", "status": self.status, "role": self.role},
             )

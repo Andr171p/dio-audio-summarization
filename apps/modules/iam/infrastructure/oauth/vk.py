@@ -8,7 +8,6 @@ import secrets
 import aiohttp
 
 from ...application.exceptions import OAuthError
-from .base import STATUS_302_REDIRECT
 
 logger = logging.getLogger(__name__)
 
