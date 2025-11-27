@@ -44,6 +44,21 @@ services:
       - 15672:15672
       - 5672:5672
 
+  redis:
+    image: redis:6-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6679:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
 
 volumes:
   postgres_data:
+  redis_data:
