@@ -8,7 +8,7 @@ from modules.iam.domain import User
 from modules.iam.infrastructure.fastapi import CurrentUserDep
 from modules.shared_kernel.application.exceptions import NotFoundError
 
-router = APIRouter(prefix="/users", tags=["Users"], route_class=DishkaRoute)
+router = APIRouter(prefix="/users", tags=["Users 👤"], route_class=DishkaRoute)
 
 
 @router.get(

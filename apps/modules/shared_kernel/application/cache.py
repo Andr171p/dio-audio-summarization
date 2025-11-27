@@ -5,6 +5,10 @@ from pydantic import BaseModel
 
 
 class KeyValueCache[T: BaseModel](ABC):
+    """Абстрактный класс для имплементации кеширования используя ключ -> значение.
+    Generic параметр `T` - кешируемый объект (может быть event, dto, entity, value_object).
+    """
+
     @abstractmethod
     async def get(self, key: str) -> T | None:
         """Получение данных из кеша"""

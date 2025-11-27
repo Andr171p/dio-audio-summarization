@@ -12,9 +12,20 @@ logger = logging.getLogger(__name__)
 
 
 class RedisKeyValueCache[T: BaseModel](KeyValueCache):
+    """Базовый класс для реализации кеширования используя Redis backend.
+    Поле класса `model` используется для автоматической сериализации
+    кешируемого объекта.
+    """
+
     model: type[T]
 
     def __init__(self, url: str, prefix: str, ttl: timedelta) -> None:
+        """
+        :param url: URL для подключения к Redis.
+        :param prefix: Осмысленный префикс для уникального ключа (для избежания коллизий).
+        :param ttl: Время жизни значения в кеше (обязателен для production).
+        """
+
         self.redis = Redis.from_url(url)
         self.prefix = prefix
         self.ttl = ttl
@@ -40,7 +51,7 @@ class RedisKeyValueCache[T: BaseModel](KeyValueCache):
         try:
             await self.redis.set(built_key, value.model_dump_json())
             await self.redis.expire(built_key, actual_ttl)
-            logger.debug(
+            logger.info(
                 "Cache set successfully",
                 extra={"key": built_key, "value": value.model_dump_json()}
             )

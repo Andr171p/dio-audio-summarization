@@ -19,7 +19,7 @@ from ..domain.exceptions import InvalidTokenError, TokenExpiredError
 from ..infrastructure.oauth import vk_oauth_client
 from ..utils.common import expires_at
 from ..utils.security import decode_token, issue_token
-from .dto import OAuthFlowInit, PKCESession, VKCallback
+from .dto import InitiatedOAuthFlow, PKCESession, VKCallback
 from .exceptions import (
     AlreadyRegisteredError,
     InvalidPKCEError,
@@ -132,7 +132,7 @@ class VKAuthService:
         self._cache = cache
         self._message_bus = message_bus
 
-    async def init_oauth_flow(self) -> OAuthFlowInit:
+    async def init_oauth_flow(self) -> InitiatedOAuthFlow:
         """Инициация OAuth 2.0 потока.
 
         :returns: URL адрес для авторизации пользователя через ВК + идентификатор PKCE сессии.
@@ -146,26 +146,26 @@ class VKAuthService:
         )
         pkce_session_id = str(pkce_session.session_id)
         await self._cache.set(pkce_session_id, pkce_session)
-        return OAuthFlowInit(
+        return InitiatedOAuthFlow(
             authorization_url=auth_data["authorization_url"], pkce_session_id=pkce_session_id
         )
 
-    async def _handle_callback(self, session_id: str, callback: VKCallback) -> dict[str, Any]:
+    async def _handle_callback(self, pkce_session_id: str, callback: VKCallback) -> dict[str, Any]:
         """Обработка callback данных после авторизации пользователя через ВК.
 
-        :param session_id: Идентификатор PKCE сессии.
+        :param pkce_session_id: Идентификатор PKCE сессии.
         :param callback: Callback после авторизации.
         :returns: Информация об ВК аккаунте пользователя.
         :raises InvalidPKCEError - при несоответствии PKCE параметров.
         """
 
-        if not session_id:
+        if not pkce_session_id:
             raise InvalidPKCEError("Session is missing!")
-        pkce_session = await self._cache.get(session_id)
+        pkce_session = await self._cache.get(pkce_session_id)
         if pkce_session is None:
             raise InvalidPKCEError("Session expired or invalid!")
         if pkce_session.state != callback.state:
-            await self._cache.invalidate(session_id)
+            await self._cache.invalidate(pkce_session_id)
             raise InvalidPKCEError("Invalid state parameter!")
         tokens = await vk_oauth_client.get_tokens(
             authorization_code=callback.authorization_code,
@@ -175,8 +175,8 @@ class VKAuthService:
         )
         return await vk_oauth_client.get_userinfo(tokens["access_token"])
 
-    async def register(self, session_id: str, callback: VKCallback) -> User:
-        userinfo = await self._handle_callback(session_id, callback)
+    async def register(self, pkce_session_id: str, callback: VKCallback) -> User:
+        userinfo = await self._handle_callback(pkce_session_id, callback)
         user_id = userinfo["user_id"]
         async with self._uow.transactional() as uow:
             user = await self._repository.get_by_social_account(AuthProvider.VK, user_id)
@@ -199,15 +199,15 @@ class VKAuthService:
             await self._message_bus.send(event)
         return user
 
-    async def authenticate(self, session_id: str, callback: VKCallback) -> TokenPair:
+    async def authenticate(self, pkce_session_id: str, callback: VKCallback) -> TokenPair:
         """Аутентифицирует пользователя.
 
-        :param session_id: Идентификатор PKCE сессии.
+        :param pkce_session_id: Идентификатор PKCE сессии.
         :param callback: Callback после авторизации через ВК.
         :returns: Пара токенов access + refresh
         """
 
-        userinfo = await self._handle_callback(session_id, callback)
+        userinfo = await self._handle_callback(pkce_session_id, callback)
         user = await self._repository.get_by_social_account(AuthProvider.VK, userinfo["user_id"])
         if user is None:
             raise RegistrationRequiredError(

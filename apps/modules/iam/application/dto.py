@@ -7,13 +7,7 @@ from modules.shared_kernel.application import DTO
 from modules.shared_kernel.utils import current_datetime
 
 
-class TokenVerify(DTO):
-    """Верификация токена"""
-
-    token: str
-
-
-class OAuthFlowInit(DTO):
+class InitiatedOAuthFlow(DTO):
     """Инициированный поток OAuth 2.0"""
 
     authorization_url: str

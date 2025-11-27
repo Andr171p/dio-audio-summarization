@@ -12,8 +12,14 @@ from ...application.exceptions import OAuthError
 logger = logging.getLogger(__name__)
 
 
-class AuthorizationData(TypedDict):
-    """Данные для инициации авторизации пользователя через ВК"""
+class OAuthFlowInitiation(TypedDict):
+    """Данные для инициации потока авторизации через ВК
+
+    Attributes:
+        authorization_url: URL для перенаправления пользователя на страницу авторизации ВК.
+        code_verifier: Секретный ключ для проверки подлинности запроса в PKCE flow.
+        state: Уникальный параметр для защиты от CSRF-атак и сопоставления запросов.
+    """
 
     authorization_url: str
     code_verifier: str
@@ -28,7 +34,7 @@ class Tokens(TypedDict):
     id_token: str
     token_type: str
     expires_in: int
-    user_id: int | str
+    user_id: str
     state: str
     scope: str
 
@@ -95,7 +101,7 @@ class VKOAuthClient:
         self._redirect_uri = redirect_uri
         self._scope = scope
 
-    async def generate_authorization_url(self) -> AuthorizationData:
+    async def generate_authorization_url(self) -> OAuthFlowInitiation:
         """Инициация ВК OAuth 2.0 authorization flow,
         генерирует URL для авторизации пользователя используя его ВК аккаунт.
         """
@@ -119,6 +125,7 @@ class VKOAuthClient:
                 url="/authorize", params=params, allow_redirects=False
             ) as response:
                 response.raise_for_status()
+                logger.debug("Authorization URL generated")
                 return {
                     "authorization_url": f"{response.url}",
                     "code_verifier": code_verifier,
@@ -149,10 +156,14 @@ class VKOAuthClient:
             "state": state,
         }
         try:
+            logger.debug(
+                "Start exchange authorization code for tokens", extra={"device_id": device_id}
+            )
             async with aiohttp.ClientSession(base_url=self._base_url) as session, session.post(
                 url="oauth2/auth", headers=headers, data=payload
             ) as response:
                 response.raise_for_status()
+                logger.info("Token exchange successful", extra={"device_id": device_id})
                 return await response.json()
         except aiohttp.ClientResponseError as e:
             error_message = (
@@ -197,6 +208,7 @@ class VKOAuthClient:
             ) as response:
                 response.raise_for_status()
                 data = await response.json()
+                logger.info("User info received successfully", extra=data)
                 return data["user"]
         except aiohttp.ClientResponseError as e:
             error_message = (

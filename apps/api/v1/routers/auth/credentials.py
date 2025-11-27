@@ -1,11 +1,12 @@
+from typing import Annotated
+
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Body, status
 
 from modules.iam.application import CredentialsAuthService, verify_token
-from modules.iam.application.dto import TokenVerify
 from modules.iam.domain import TokenPair, User, UserClaims, UserCredentials
 
-router = APIRouter(prefix="", tags=["Credentials Auth"], route_class=DishkaRoute)
+router = APIRouter(prefix="", tags=["Credentials Auth 🔐"], route_class=DishkaRoute)
 
 
 @router.post(
@@ -56,11 +57,14 @@ async def refresh() -> None: ...
     response_model_exclude_none=True,
     summary="Верификация токена"
 )
-async def verify(body: TokenVerify) -> UserClaims:
-    return verify_token(body.token)
+async def verify(
+        token: Annotated[str, Body(..., description="Токен для верификации")]
+) -> UserClaims:
+    return verify_token(token)
 
 
-'''@router.post(
+"""
+@router.post(
     path="/forgot-password",
     status_code=status.HTTP_200_OK,
     response_model=...,
@@ -75,4 +79,5 @@ async def forgot_password() -> ...: ...
     response_model=...,
     summary="Сброс и смена пароля"
 )
-async def reset_password() -> ...: ...'''
+async def reset_password() -> ...: ...
+"""
