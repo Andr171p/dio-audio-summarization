@@ -1,25 +1,19 @@
-from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, PositiveFloat, PositiveInt
-
-from modules.shared_kernel.utils import current_datetime
+from modules.shared_kernel.domain import Command
 
 
-class CreateCollectionCommand(BaseModel):
-    """Загрузка коллекции аудио-файлов"""
-    user_id: UUID
-    topic: str = Field(default="")
+class SummarizeAudioCommand(Command):
+    """Инициация суммаризации аудио записи-ей
 
+    Attributes:
+        message_id: Идентификатор сообщения.
+        attachment_ids: Идентификаторы файловых вложений который нужно суммаризовать.
+        document_format: Формат документа в котором нужно вернуть результат.
+        additional_comments: Дополнительные комментарии пользователя по созданию саммари.
+    """
 
-class AddRecordCommand(BaseModel):
-    """Добавление аудио записи в коллекцию"""
-    user_id: UUID
-    collection_id: UUID
-    filename: str
-    filesize: PositiveFloat
-    duration: PositiveFloat
-    samplerate: PositiveFloat | None = None
-    channels: PositiveInt | None = None
-    bitrate: PositiveInt | None = None
-    created_at: datetime = Field(default_factory=current_datetime)
+    message_id: UUID
+    attachment_ids: list[UUID]
+    document_format: ...
+    additional_comments: str

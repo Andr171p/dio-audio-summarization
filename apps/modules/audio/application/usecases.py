@@ -5,21 +5,9 @@ from modules.shared_kernel.application.exceptions import NotFoundError
 
 from ..domain import (
     AddRecordCommand,
-    AudioCollection,
     AudioRecord,
-    CreateCollectionCommand,
 )
 from .repository import CollectionRepository
-
-
-class CreateCollectionUseCase:
-    """Создание аудио коллекции"""
-    def __init__(self, repository: CollectionRepository) -> None:
-        self.repository = repository
-
-    async def execute(self, command: CreateCollectionCommand) -> AudioCollection:
-        collection = AudioCollection.create(command)
-        return await self.repository.create(collection)
 
 
 class UploadRecordUseCase:
