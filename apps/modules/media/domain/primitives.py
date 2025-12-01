@@ -25,6 +25,11 @@ class Filepath(StrPrimitive):
         "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
     )
 
+    @property
+    def extension(self) -> str:
+        """Расширение файла"""
+        return self.split(".")[-1]
+
     @classmethod
     def validate(cls, filepath: str) -> str:
         if not filepath:

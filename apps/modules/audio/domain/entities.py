@@ -11,47 +11,17 @@ from modules.shared_kernel.files import FilePart, Filepath
 from .value_objects import AudioFormat
 
 
-class AudioSegment(Entity):
-    id: PositiveInt
-    segments_count: PositiveInt
-    content: bytes
-    duration: PositiveInt
+class Meeting(...):
+    ...
+
+
+class Audio(Entity):
+    file_id: UUID
     format: AudioFormat
-    size: PositiveInt
+    duration: PositiveInt
     channels: PositiveInt | None = None
     samplerate: PositiveInt | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
-
-    @property
-    def is_last(self) -> bool:
-        """Является ли сегмент последним в последовательности"""
-
-        return self.id == self.segments_count
-
-    def rewrite(
-        self,
-        content: bytes,
-        size: PositiveInt,
-        format: AudioFormat,  # noqa: A002
-        channels: PositiveInt | None = None,
-        samplerate: PositiveInt | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> "AudioSegment":
-        """Перезапись аудио сегмента. Создаёт новый объект не изменяя старый.
-        Если опциональное значение None, то будет взят параметр из старого объекта.
-        """
-
-        return AudioSegment(
-            id=self.id,
-            segments_count=self.segments_count,
-            content=content,
-            duration=self.duration,
-            format=format,
-            size=size,
-            channels=channels if channels is not None else self.channels,
-            samplerate=samplerate if samplerate is not None else self.samplerate,
-            metadata=metadata if metadata is not None else self.metadata,
-        )
 
 
 class AudioFile(Entity):

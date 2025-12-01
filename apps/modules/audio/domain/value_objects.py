@@ -1,6 +1,12 @@
+from typing import Any
+
 import os
 from enum import StrEnum
 from pathlib import Path
+
+from pydantic import Field, PositiveInt
+
+from modules.shared_kernel.domain import ValueObject
 
 
 class AudioFormat(StrEnum):
@@ -62,3 +68,21 @@ class AudioFormat(StrEnum):
     def is_lossless(self) -> bool:
         """Является ли формат, форматом без потерь"""
         return self in self.lossless_formats()
+
+
+class AudioSegment(ValueObject):
+    number: PositiveInt
+    total_count: PositiveInt
+    content: bytes
+    format: AudioFormat
+    size: PositiveInt
+    duration: PositiveInt
+    channels: PositiveInt | None = None
+    samplerate: PositiveInt | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def is_last(self) -> bool:
+        """Является ли сегмент последним в последовательности"""
+
+        return self.number == self.total_count

@@ -1,4 +1,5 @@
 __all__ = (
+    "AudioSplitter",
     "CollectionRepository",
     "CollectionUpdate",
     "CreateCollectionUseCase",
@@ -7,3 +8,4 @@ __all__ = (
 
 from .repository import CollectionRepository, CollectionUpdate
 from .usecases import CreateCollectionUseCase, UploadRecordUseCase
+from .workers import AudioSplitter

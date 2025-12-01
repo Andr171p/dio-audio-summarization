@@ -66,3 +66,11 @@ class FilePart(File):
     def is_last(self) -> bool:
         """Является ли чанк последним"""
         return self.number == self.total_parts
+
+    @property
+    def progress_percentage(self) -> float:
+        """Процент выполнения загрузки файла"""
+        if self.total_size > 0:
+            uploaded = self.number * self.size
+            return (uploaded / self.total_size) * 100
+        return 0.0
