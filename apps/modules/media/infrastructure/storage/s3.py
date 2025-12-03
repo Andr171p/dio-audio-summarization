@@ -7,7 +7,7 @@ from aiobotocore.client import AioBaseClient
 from aiobotocore.session import get_session
 from botocore.exceptions import ClientError
 
-from ...application import Storage
+from ...application import RemoteStorage
 from ...application.exceptions import (
     DownloadFailedError,
     RemovingFailedError,
@@ -18,7 +18,7 @@ from ...domain import File, FilePart, Filepath
 logger = logging.getLogger(__name__)
 
 
-class S3Storage(Storage):
+class S3Storage(RemoteStorage):
     """Реализация S3 хранилища"""
 
     def __init__(

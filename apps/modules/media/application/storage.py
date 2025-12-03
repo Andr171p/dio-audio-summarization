@@ -44,10 +44,12 @@ class Storage(ABC):
     async def exists(self, filepath: Filepath) -> bool:
         """Проверка наличия файла без его загрузки"""
 
+
+class RemoteStorage(Storage):
+    """Удалённое хранилище, содержит расширенный функционал"""
+
     @abstractmethod
-    async def generate_presigned_url(
-            self, filepath: Filepath, expires_in: int = 60 * 60
-    ) -> str:
+    async def generate_presigned_url(self, filepath: Filepath, expires_in: int = 60 * 60) -> str:
         """Генерация пред-подписанного URL для безопасного скачивания (доступно только для S3)
 
         :param filepath: Системный путь до файла в хранилище.

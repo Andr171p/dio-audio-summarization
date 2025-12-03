@@ -17,7 +17,7 @@ class AudioInfo(TypedDict):
     bitrate: int
 
 
-def get_audio_info(filepath: Path) -> AudioInfo:
+def extract_audio_info(filepath: Path) -> AudioInfo:
     """Получение информации об аудио"""
 
     audio = mutagen.File(filepath, easy=True)

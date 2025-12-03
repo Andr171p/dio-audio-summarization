@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Self
 
 import os
 from enum import StrEnum
@@ -76,7 +76,18 @@ class AudioFormat(StrEnum):
         return self in self.lossless_formats()
 
 
-class AudioSegment(ValueObject):
+class _Segment(ValueObject):
+    number: PositiveInt
+    total_count: PositiveInt
+
+    @property
+    def is_last(self) -> bool:
+        """Является ли сегмент последним в последовательности"""
+
+        return self.number == self.total_count
+
+
+class AudioSegment(_Segment):
     """Часть аудио файла (аудио сегмент)
 
     Attributes:
@@ -91,8 +102,6 @@ class AudioSegment(ValueObject):
         metadata: Дополнительная информация, которую нужно передать в контекст
     """
 
-    number: PositiveInt
-    total_count: PositiveInt
     content: bytes
     format: AudioFormat
     size: PositiveInt
@@ -101,8 +110,16 @@ class AudioSegment(ValueObject):
     samplerate: PositiveInt | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    @property
-    def is_last(self) -> bool:
-        """Является ли сегмент последним в последовательности"""
 
-        return self.number == self.total_count
+class TranscriptionSegment(_Segment):
+    text: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @classmethod
+    def from_audio(cls, text: str, segment: AudioSegment) -> Self:
+        return cls(
+            number=segment.number,
+            total_count=segment.total_count,
+            text=text,
+            metadata=segment.metadata,
+        )
