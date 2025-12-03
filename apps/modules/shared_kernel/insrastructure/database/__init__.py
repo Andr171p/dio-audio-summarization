@@ -12,6 +12,7 @@ __all__ = (
     "StrUnique",
     "StrUniqueNull",
     "TextNull",
+    "UUIDArray",
     "UUIDField",
     "UUIDFieldNull",
     "sessionmaker",
@@ -28,6 +29,7 @@ from .primitives import (
     StrUnique,
     StrUniqueNull,
     TextNull,
+    UUIDArray,
     UUIDField,
     UUIDFieldNull,
 )

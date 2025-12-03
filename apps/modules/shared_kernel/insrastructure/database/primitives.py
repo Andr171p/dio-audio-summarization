@@ -10,6 +10,7 @@ from sqlalchemy.orm import mapped_column
 
 StrNull = Annotated[str | None, mapped_column(nullable=True)]
 StrArray = Annotated[list[str], mapped_column(ARRAY(String))]
+UUIDArray = Annotated[list[UUID], mapped_column(ARRAY(PG_UUID(as_uuid=True)))]
 StrUnique = Annotated[str, mapped_column(unique=True)]
 StrUniqueNull = Annotated[str, mapped_column(unique=True, nullable=True)]
 StrText = Annotated[str, mapped_column(Text, nullable=False)]

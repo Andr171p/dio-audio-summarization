@@ -3,21 +3,13 @@ from uuid import UUID
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from modules.shared_kernel.insrastructure.database import Base, JsonField, TextNull, UUIDField
-
-
-class AttachmentModel(Base):
-    __tablename__ = "attachments"
-
-    message_id: Mapped[UUID] = mapped_column(ForeignKey("messages.id"), unique=False)
-    file_id: Mapped[UUIDField]
-    filename: Mapped[str]
-    format: Mapped[str]
-    type: Mapped[str]
-    size: Mapped[int]
-    metadata: Mapped[JsonField]
-
-    message: Mapped["MessageModel"] = relationship(back_populates="attachments")
+from modules.shared_kernel.insrastructure.database import (
+    Base,
+    JsonField,
+    TextNull,
+    UUIDArray,
+    UUIDField,
+)
 
 
 class MessageModel(Base):
@@ -26,7 +18,7 @@ class MessageModel(Base):
     chat_id: Mapped[UUID] = mapped_column(ForeignKey("chats.id"), unique=False)
     role: Mapped[str]
     text: Mapped[TextNull]
-    attachments: Mapped[list["AttachmentModel"]] = relationship(back_populates="message")
+    attachments: Mapped[UUIDArray]
     metadata: Mapped[JsonField]
 
     chat: Mapped["ChatModel"] = relationship(back_populates="messages")

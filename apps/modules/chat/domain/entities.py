@@ -1,59 +1,60 @@
 from typing import Any, Self
 
-from datetime import datetime
+from collections import UserList
 from uuid import UUID
 
-from pydantic import Field, PositiveInt, model_validator
+from pydantic import Field, PositiveInt, computed_field, model_validator
 
-from modules.shared_kernel.domain import AggregateRoot, Entity, InvariantViolationError
+from modules.shared_kernel.domain import AggregateRoot, Entity
 
-from .primitives import Filename, Filepath
-from .value_objects import FileType, MessageRole
-
-
-class Attachment(Entity):
-    file_id: UUID
-    filename: Filename
-    format: str
-    type: FileType
-    size: PositiveInt
-    metadata: dict[str, Any] = Field(default_factory=dict)
+from .value_objects import MessageRole
 
 
 class Message(Entity):
+    """Сообщение внутри чата.
+
+    Attributes:
+        chat_id: Идентификатор чата.
+        role: Роль отправителя.
+        text: Текст сообщения.
+        attachments: Медиа вложения, содержит список медиа идентификаторов (file_id).
+        metadata: Дополнительные метаданные сообщения.
+    """
+
+    chat_id: UUID
     role: MessageRole
     text: str
-    attachments: list[Attachment] = Field(default_factory=list)
+    attachments: list[UUID] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class File(Entity):
-    path: Filepath
-    size: PositiveInt
-    content: bytes
-    uploaded_at: datetime
+class Conversation(UserList[Message]):
+    """Текущий диалог ИИ с пользователем"""
+
+    def to_markdown(self) -> str:
+        """Приводит последовательность сообщений в Markdown формат"""
+
+        if not self.data:
+            return ""
+        return "\n".join([
+            f"({i}) [{message.role}]: {message.text}"
+            for i, message in enumerate(self.data)
+        ])
 
 
 class Chat(AggregateRoot):
     user_id: UUID
     title: str
     messages_count: PositiveInt
-    conversation_length: PositiveInt
-    conversation: list[Message] = Field(default_factory=list)
+    conversation: Conversation = Field(default_factory=list)
+
+    @computed_field(description="Количество сообщений в текущем диалоге")
+    def conversation_length(self) -> PositiveInt:
+        return len(self.conversation)
 
     @model_validator(mode="after")
     def _validate_invariant(self) -> Self:
-        if self.conversation_length != len(self.conversation):
-            raise InvariantViolationError(
-                "Conversation length does not match the number of messages",
-                entity_name=self.__class__.__name__,
-                details={
-                    "chat_id": self.id,
-                    "conversation_length": self.conversation_length,
-                    "messages_length": len(self.conversation),
-                }
-            )
-        return self
+        ...
 
     @classmethod
     def create(cls, user_id: UUID, title: str) -> Self: ...

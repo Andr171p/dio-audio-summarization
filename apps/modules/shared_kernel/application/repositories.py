@@ -25,7 +25,7 @@ class ReadableRepository[EntityT: Entity](ABC):
     """Репозиторий для чтения данных"""
 
     @abstractmethod
-    async def read(self, id: UUID) -> EntityT | None: pass  # noqa: A002
+    async def read(self, id: UUID, **kwargs) -> EntityT | None: pass  # noqa: A002
 
     @abstractmethod
     async def read_all(self, page: int, limit: int) -> list[EntityT]: pass
