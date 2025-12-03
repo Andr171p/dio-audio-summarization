@@ -6,6 +6,8 @@ from ..domain import AudioFormat, AudioSegment
 
 
 class AudioSplitter:
+    """Разбиение аудио на сегменты"""
+
     def __init__(
             self, segment_duration: int, segment_overlap: int, segment_format: AudioFormat,
     ) -> None:

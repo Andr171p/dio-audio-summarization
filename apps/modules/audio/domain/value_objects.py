@@ -43,34 +43,54 @@ class AudioFormat(StrEnum):
 
     @classmethod
     def from_filepath(cls, filepath: str | Path | os.PathLike[str]) -> "AudioFormat":
+
         return cls(Path(filepath).suffix.replace(".", ""))
 
     @classmethod
     def lossless_formats(cls) -> list["AudioFormat"]:
         """Форматы без потерь качества"""
+
         return [cls.FLAC, cls.WAV, cls.AIFF, cls.ALAC, cls.DSF, cls.DFF]
 
     @classmethod
     def lossy_formats(cls) -> list["AudioFormat"]:
         """Форматы с потерями качества"""
+
         return [cls.MP3, cls.AAC, cls.OGG, cls.WMA, cls.OPUS, cls.M4A]
 
     @classmethod
     def streaming_formats(cls) -> list["AudioFormat"]:
         """Форматы для потоковой передачи"""
+
         return [cls.M3U, cls.M3U8, cls.PLS]
 
     @classmethod
     def container_formats(cls) -> list["AudioFormat"]:
         """Контейнерные форматы"""
+
         return [cls.MP4, cls.AVI, cls.MKV, cls.WEBM]
 
     def is_lossless(self) -> bool:
         """Является ли формат, форматом без потерь"""
+
         return self in self.lossless_formats()
 
 
 class AudioSegment(ValueObject):
+    """Часть аудио файла (аудио сегмент)
+
+    Attributes:
+        number: Номер сегмента (натуральное число)
+        total_count: Общее количество сегментов
+        content: Аудио контент (байты)
+        format: Формат аудио, например 'wav', 'mp3', 'm4a', 'flac', ...
+        size: Размер сегмента в байтах
+        duration: Продолжительность сегмента в секундах
+        channels: Количество аудио каналов
+        samplerate: Частота дискретизации
+        metadata: Дополнительная информация, которую нужно передать в контекст
+    """
+
     number: PositiveInt
     total_count: PositiveInt
     content: bytes

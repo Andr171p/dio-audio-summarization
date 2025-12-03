@@ -21,6 +21,38 @@ logger = logging.getLogger(__name__)
 
 
 class FFMpegAudioSplitter(AudioSplitter):
+    """Асинхронный сплиттер аудио-потоков на сегменты фиксированной длительности
+    с использованием FFmpeg.
+
+    Класс предназначен для обработки аудио-потоков в реальном времени или из файлов,
+    разделения их на чанки заданной длительности и конвертации в заданный формат.
+    Использует FFmpeg для высокопроизводительной обработки аудио с поддержкой
+    различных кодеков и форматов.
+
+    Основные возможности:
+    - Потоковое разделение аудио на сегменты
+    - Автоматическая конвертация в указанный формат (по умолчанию WAV)
+    - Поддержка перекрытия сегментов (overlap)
+    - Очистка временных файлов после обработки
+    - Асинхронная обработка для эффективной работы с I/O
+
+    Example:
+        >>> splitter = FFMpegAudioSplitter(
+        ...     segment_duration=300,  # 5 минут
+        ...     segment_overlap=10,    # 10 секунд перекрытия
+        ...     segment_format=AudioFormat.WAV,
+        ...     prefix="session_123"
+        ... )
+        >>> async for segment in splitter.split_stream(audio_stream):
+        ...     process_segment(segment)
+
+    Note:
+        - Для работы требуется установленный FFmpeg в системе PATH
+        - Все временные файлы автоматически удаляются после обработки
+        - Поддерживает форматы: WAV, MP3, OGG, FLAC (зависит от FFmpeg)
+        - Сегменты нумеруются начиная с 1
+    """
+
     def __init__(
             self,
             segment_duration: int,
@@ -29,6 +61,14 @@ class FFMpegAudioSplitter(AudioSplitter):
             temp_dir: Path | None = None,
             prefix: str | float | UUID = "",
     ) -> None:
+        """
+        :param segment_duration: Продолжительность сегмента в секундах
+        :param segment_overlap: Перекрытие между сегментами в секундах
+        :param segment_format: Формат сегмента
+        :param temp_dir: Директория для временных файлов обработки, по умолчанию текущая
+        :param prefix: Уникальный префикс для временных файлов
+        """
+
         super().__init__(
             segment_duration=segment_duration,
             segment_overlap=segment_overlap,
@@ -40,10 +80,15 @@ class FFMpegAudioSplitter(AudioSplitter):
     @property
     def _ffmpeg_output_pattern(self) -> str:
         """Паттерн для выходных сегментов FFMpeg"""
-        return f"{self._prefix}_segment_%03.{self._segment_format}"
+        return f"{self._prefix}_segment_%03d.{self._segment_format}"
 
     @asynccontextmanager
     async def _ffmpeg_pipe(self, input_path: Path):
+        """Создание асинхронного процесса для потоковой работы с FFMpeg.
+
+        :param input_path: Путь до файла, который нужно разбить на чанки.
+        """
+
         ffmpeg_command = [
             "ffmpeg",
             "-y",  # Перезапись выхода
@@ -89,9 +134,10 @@ class FFMpegAudioSplitter(AudioSplitter):
         :param audio_format: Формат временного файла (*опционально)
         :returns: Путь до временного файла.
         """
+
         extension = audio_format or ".input"
         async with aiofiles.tempfile.NamedTemporaryFile(
-            mode="w",
+            mode="wb+",
             suffix=f".{extension}",
             prefix=self._prefix,
             dir=self._temp_dir,
@@ -108,7 +154,7 @@ class FFMpegAudioSplitter(AudioSplitter):
         files = sorted(
             glob.glob(self._ffmpeg_output_pattern.replace("%03d", "*")),
             key=lambda x: int(
-                re.search(rf"{self._prefix}_chunk_(\d+)\.{self._segment_format}", x).group(1)
+                re.search(rf"{self._prefix}_segment_(\d+)\.{self._segment_format}", x).group(1)
             ),
         )
         for index, filepath in enumerate(files):
@@ -119,7 +165,7 @@ class FFMpegAudioSplitter(AudioSplitter):
                 number=index + 1,
                 total_count=len(files),
                 content=content,
-                format=...,
+                format=self._segment_format,
                 size=len(content),
                 duration=audioinfo["duration"],
                 samplerate=audioinfo["samplerate"],
@@ -141,6 +187,7 @@ class FFMpegAudioSplitter(AudioSplitter):
         :param metadata: Дополнительные данные, которые нужно передать в контекст чанков.
         :returns: Генератор аудио сегментов.
         """
+
         input_path = await self._write_input_file(stream)
         async with self._ffmpeg_pipe(input_path) as pipe:
             _, stderr = await pipe.communicate()

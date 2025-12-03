@@ -15,5 +15,5 @@ class SummarizeAudioCommand(Command):
 
     message_id: UUID
     attachment_ids: list[UUID]
-    document_format: ...
+    document_format: str
     additional_comments: str
