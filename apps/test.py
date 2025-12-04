@@ -1,6 +1,13 @@
-batch_size = 32
+import logging
 
-arr = list(range(100))
+from modules.audio.infrastructure.ai.embeddings import RemoteHTTPEmbeddings
 
-for i in range(0, len(arr), batch_size):
-    print(arr[i:i+batch_size])
+logging.basicConfig(level=logging.INFO)
+
+embeddings = RemoteHTTPEmbeddings(
+    base_url="https://andr17p-hf-embeddings-api.hf.space"
+)
+
+text = "Hello world"
+
+print(embeddings.embed_query(text))
