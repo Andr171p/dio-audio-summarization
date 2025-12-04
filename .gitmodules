@@ -1,0 +1,3 @@
+[submodule "services/hf-embeddings-api"]
+	path = services/hf-embeddings-api
+	url = https://huggingface.co/spaces/Andr17p/hf-embeddings-api
