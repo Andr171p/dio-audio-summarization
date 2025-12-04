@@ -10,3 +10,11 @@ class FileType(StrEnum):
     IMAGE = "image"
     TEXT = "text"
     OTHER = "other"
+
+
+class FileStatus(StrEnum):
+    """Статус файла"""
+
+    TEMPORARY = "temporary"
+    ATTACHED = "attached"
+    PERMANENT = "permanent"
