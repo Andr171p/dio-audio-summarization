@@ -29,12 +29,16 @@ class SemanticTextSplitter:
     def __init__(
             self,
             embeddings: Embeddings,
+            sentence_length: int = 500,
+            sentence_overlap: int = 20,
             sentence_separator: str = "\n\n",
             batch_size: int = 32,
             min_chunk_sentences: int = 1,
             random_state: int = 42,
     ) -> None:
         self._embeddings = embeddings
+        self._sentence_length = sentence_length
+        self._sentence_overlap = sentence_overlap
         self._sentence_separator = sentence_separator
         self._batch_size = batch_size
         self._min_chunk_sentences = min_chunk_sentences
@@ -83,6 +87,16 @@ class SemanticTextSplitter:
             score.append(mean_squared_error(y1, y1_pred) + mean_squared_error(y2, y2_pred))
         return int(np.argmin(score) + k_min)
 
+    def _split_into_sentences(self, text: str) -> list[str]:
+        """Разделение входного текста на более малые куски (предложения)"""
+
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self._sentence_length,
+            chunk_overlap=self._sentence_overlap,
+            separators=[self._sentence_separator]
+        )
+        return splitter.split_text(text)
+
     def _embed_sentences(self, sentences: list[str]) -> list[list[float]]:
         """Векторизация текста по предложениям"""
 
@@ -101,10 +115,9 @@ class SemanticTextSplitter:
         if not text.strip():
             return []
         preprocessed_text = preprocess_text(text)
-        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
         sentences: list[str] = [
             sentence.strip()
-            for sentence in splitter.split_text(preprocessed_text)
+            for sentence in self._split_into_sentences(preprocessed_text)
             if sentence.strip()
         ]
         embeddings = self._embed_sentences(sentences)

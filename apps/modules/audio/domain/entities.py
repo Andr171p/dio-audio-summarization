@@ -5,13 +5,12 @@ from uuid import UUID
 
 from pydantic import Field, PositiveFloat, PositiveInt
 
-from modules.shared_kernel.domain import Entity
-from modules.shared_kernel.files import FilePart, Filepath
+from modules.shared_kernel.domain import AggregateRoot, Entity
 
 from .value_objects import AudioFormat
 
 
-class Meeting(...):
+class Meeting(AggregateRoot):
     ...
 
 

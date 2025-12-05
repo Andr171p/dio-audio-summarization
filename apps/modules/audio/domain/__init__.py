@@ -3,12 +3,12 @@ __all__ = (
     "AudioSegment",
     "RecordAddedEvent",
     "RecordAddedEvent",
-    "SummarizeAudioCommand",
+    "SummarizeMeetingCommand",
     "TranscriptionSegment",
     "UnsupportedAudioError",
 )
 
-from .commands import SummarizeAudioCommand
+from .commands import SummarizeMeetingCommand
 from .events import RecordAddedEvent
 from .exceptions import UnsupportedAudioError
 from .value_objects import AudioFormat, AudioSegment, TranscriptionSegment

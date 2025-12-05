@@ -1,14 +1,43 @@
 from typing import ClassVar
 
 import re
+from pathlib import Path
 
 from modules.shared_kernel.domain import StrPrimitive
 
 
 class Filename(StrPrimitive):
+    """Кастомный примитив для валидации файловых имён.
+
+    Примеры использования:
+        Filename("document.pdf")  # OK
+        Filename("..\\file.txt")  # ValueError
+        Filename("")              # ValueError
+    """
+
+    ALLOWED_CHARS: ClassVar[str] = r"a-zA-Z0-9_\-\.\s"
+    MAX_LENGTH: ClassVar[int] = 255
+
+    @property
+    def extension(self) -> str:
+        return self.split(".")[-1]
 
     @classmethod
-    def validate(cls, filepath: str) -> str: ...
+    def validate(cls, filename: str) -> str:
+        path = Path(filename)
+        filename = path.name
+        if not filename:
+            raise ValueError("Filename cannot be empty")
+        if len(filename) > cls.MAX_LENGTH:
+            raise ValueError(f"Filename too long (max {cls.MAX_LENGTH} chars)")
+        invalid_chars = re.findall(f"[^{cls.ALLOWED_CHARS}]", filename)
+        if invalid_chars:
+            invalid = "".join(sorted(set(invalid_chars)))
+            raise ValueError(f"Filename contains invalid characters: {invalid}")
+        # Проверка на опасные последовательности
+        if re.search(r"\.\.", filename):
+            raise ValueError("Filename cannot contain '..'")
+        return re.sub(r"\s+", " ", filename).strip()
 
 
 class Filepath(StrPrimitive):
@@ -18,8 +47,8 @@ class Filepath(StrPrimitive):
     Поддерживает относительные и абсолютные пути для Unix и Windows.
     """
 
-    MAX_FILEPATH_LENGTH = 4096
-    WINDOWS_RESERVED_NAMES: tuple[str, ...] = (
+    MAX_FILEPATH_LENGTH: ClassVar[int] = 4096
+    WINDOWS_RESERVED_NAMES: ClassVar[tuple[str, ...]] = (
         "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
         "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3",
         "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"

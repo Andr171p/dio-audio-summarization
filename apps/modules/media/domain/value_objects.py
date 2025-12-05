@@ -13,8 +13,16 @@ class FileType(StrEnum):
 
 
 class FileStatus(StrEnum):
-    """Статус файла"""
+    """Статус файла
 
+    Attributes:
+        UPLOADING: В процессе загрузки
+        UPLOADED: Загружен в хранилище, но не прикреплён
+        ATTACHED: Прикреплён к сущности
+    """
+
+    UPLOADING = "uploading"
+    UPLOADED = "uploaded"
     TEMPORARY = "temporary"
     ATTACHED = "attached"
     PERMANENT = "permanent"
