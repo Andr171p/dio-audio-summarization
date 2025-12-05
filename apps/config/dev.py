@@ -89,6 +89,12 @@ class OAuthSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="OAUTH_")
 
 
+class EmbeddingsSettings(BaseSettings):
+    base_url: str = "http://localhost:8000"
+
+    model_config = SettingsConfigDict(env_prefix="EMBEDDINGS_")
+
+
 class AppSettings(BaseSettings):
     name: str = "Alyosha AI"
     port: int = 8000
@@ -111,6 +117,7 @@ class Settings(BaseSettings):
     jwt: JWTSettings = JWTSettings()
     vk: VKSettings = VKSettings()
     oauth: OAuthSettings = OAuthSettings()
+    embeddings: EmbeddingsSettings = EmbeddingsSettings()
 
 
 settings: Final[Settings] = Settings()
