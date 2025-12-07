@@ -6,8 +6,10 @@ __all__ = (
     "Filename",
     "Filepath",
     "MimeType",
+    "UploadFileCommand",
 )
 
+from .commands import UploadFileCommand
 from .entities import File, FileMetadata, FilePart
 from .primitives import Filename, Filepath, MimeType
 from .value_objects import FileType

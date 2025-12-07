@@ -9,7 +9,7 @@ from modules.chat.application import ChatRepository
 from modules.chat.domain import Chat
 from modules.iam.infrastructure.fastapi import CurrentUserDep
 
-router = APIRouter(prefix="/chats", tags=["Chat"], route_class=DishkaRoute)
+router = APIRouter(prefix="/chats", tags=["Chat 🗫"], route_class=DishkaRoute)
 
 
 @router.get(
@@ -54,12 +54,3 @@ async def get_chat(chat_id: UUID, repository: FromDishka[ChatRepository]) -> Cha
 )
 async def delete_chat(chat_id: UUID, repository: FromDishka[ChatRepository]) -> None:
     await repository.delete(chat_id)
-
-
-@router.post(
-    path="/{chat_id}/files/upload",
-    status_code=status.HTTP_201_CREATED,
-    response_model=...,
-    summary="Загрузка файла в чат"
-)
-async def upload_file() -> ...: ...

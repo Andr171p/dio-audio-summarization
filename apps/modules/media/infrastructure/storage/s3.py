@@ -1,6 +1,6 @@
 import logging
 import math
-from collections.abc import AsyncGenerator, AsyncIterable
+from collections.abc import AsyncGenerator, AsyncIterable, AsyncIterator
 from contextlib import asynccontextmanager
 
 from aiobotocore.client import AioBaseClient
@@ -129,7 +129,7 @@ class S3Storage(RemoteStorage):
 
     async def download_multipart(
             self, filepath: Filepath, part_size: int
-    ) -> AsyncIterable[FilePart]:
+    ) -> AsyncIterator[FilePart]:
         try:
             async with self._get_client() as client:
                 head = await client.head_object(Bucket=self.bucket, Key=filepath)
@@ -156,7 +156,7 @@ class S3Storage(RemoteStorage):
                         total_size=filesize,
                         total_parts=part_numbers,
                         path=filepath,
-                        size=part_size,
+                        size=len(content),
                         mime_type=mime_type,
                         content=content,
                         uploaded_at=uploaded_at,

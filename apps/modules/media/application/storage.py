@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterable
+from collections.abc import AsyncIterable, AsyncIterator
 
 from ..domain import File, FilePart, Filepath
 
@@ -28,7 +28,7 @@ class Storage(ABC):
     @abstractmethod
     async def download_multipart(
             self, filepath: Filepath, part_size: int
-    ) -> AsyncIterable[FilePart]:
+    ) -> AsyncIterator[FilePart]:
         """Скачивание файла по частым их хранилища
 
         :param filepath: Системный путь до файла.

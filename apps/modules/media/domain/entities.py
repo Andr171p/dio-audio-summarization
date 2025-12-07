@@ -3,15 +3,16 @@ from typing import Self
 import math
 from collections.abc import AsyncIterable
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from pydantic import Field, NonPositiveInt, PositiveInt
 
 from modules.shared_kernel.domain import Entity
 from modules.shared_kernel.utils import current_datetime
 
+from .commands import UploadFileCommand
 from .primitives import Filename, Filepath, MimeType
-from .value_objects import FileStatus, FileType
+from .value_objects import FileContext, FileStatus, FileType
 
 
 class File(Entity):
@@ -48,11 +49,13 @@ class FilePart(File):
     @property
     def is_last(self) -> bool:
         """Является ли чанк последним"""
+
         return self.number == self.total_parts
 
     @property
     def progress_percentage(self) -> float:
         """Процент выполнения загрузки файла"""
+
         if self.total_size > 0:
             uploaded = self.number * self.size
             return (uploaded / self.total_size) * 100
@@ -63,7 +66,7 @@ class FileMetadata(Entity):
     """Файловые метаданные, несут только информацию о файле
 
     Attributes:
-        status: Статус загрузки файла, при создании 'uploading'.
+        status: Статус загрузки файла при создании 'uploaded'.
         filename: Оригинальное имя файла (то которое указал пользователь).
         filepath: Путь до файла в системе.
         filesize: Размер файла в байтах.
@@ -81,43 +84,61 @@ class FileMetadata(Entity):
     extension: str
     type: FileType
     uploaded_at: datetime = Field(default_factory=current_datetime)
+    context: FileContext = Field(default_factory=dict)
 
-    @classmethod
-    def create(
-            cls,
-            filename: str,
-            mime_type: str,
-            filesize: int,
-            /,
+    @staticmethod
+    def _build_filepath(
+            *,
             tenant: str,
             entity_type: str,
             entity_id: str,
-    ) -> Self:
-        """Создание мета-данных файла.
+            file_type: FileType,
+            file_id: UUID,
+            extension: str
+    ) -> Filepath:
+        """Построение системного пути до файла (невидимый для пользователя).
 
-        :param filename: Оригинальное имя файла.
-        :param mime_type: MIME-тип файла, передаётся пользователем.
-        :param filesize: Размер файла в байтах.
         :param tenant: Клиент, компания, область.
         :param entity_type: Тип сущности, которой принадлежит файл, например: 'user', 'message'.
         :param entity_id: Идентификатор сущности за которой закреплён файл.
+        :param file_type: Тип файла: 'document', 'image', ...
+        :param file_id: Идентификатор файла.
+        :param extension: Расширение файла без точки.
         """
 
+        return Filepath(
+            f"{tenant}/{entity_type}/{entity_id}/{file_type}/{file_id}.{extension}"
+        )
+
+    @classmethod
+    def create(cls, command: UploadFileCommand) -> Self:
+        """Создание мета-данных файла."""
+
         file_id = uuid4()
-        filename = Filename(filename)
-        mime_type = MimeType(mime_type)
-        filepath = Filepath(
-            f"{tenant}/{entity_type}/{entity_id}/{mime_type.type}/{file_id}.{filename.extension}"
+        filename = Filename(command.filename)
+        mime_type = MimeType(command.mime_type)
+        filepath = cls._build_filepath(
+            tenant=command.tenant,
+            entity_type=command.entity_type,
+            entity_id=command.entity_id,
+            file_type=mime_type.type,
+            file_id=file_id,
+            extension=filename.extension,
         )
         return cls(
             id=file_id,
-            status=FileStatus.UPLOADING,
+            status=FileStatus.UPLOADED,
             filename=filename,
             filepath=filepath,
-            filesize=filesize,
+            filesize=command.filesize,
             mime_type=mime_type,
             extension=filename.extension,
             type=mime_type.type,
+            context={
+                "tenant": command.tenant,
+                "entity_type": command.entity_type,
+                "entity_id": command.entity_id
+            },
         )
 
     async def generate_file_parts(
@@ -126,8 +147,9 @@ class FileMetadata(Entity):
         """Асинхронный генератор для потоковой загрузки файла по частям.
 
         :param file_stream: Байтовых поток файла, которые нужно загрузить.
-        :param min_part_size: Минимальный размер части файла (5 mb по умолчанию)
+        :param min_part_size: Минимальный размер части файла (5 MB по умолчанию)
         """
+
         total_parts = math.ceil(self.filesize / min_part_size)
         part_number = 1
         buffer = b""

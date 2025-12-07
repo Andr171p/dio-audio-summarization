@@ -1,4 +1,7 @@
+from typing import NotRequired, TypedDict
+
 from enum import StrEnum
+from uuid import UUID
 
 
 class FileType(StrEnum):
@@ -26,3 +29,12 @@ class FileStatus(StrEnum):
     TEMPORARY = "temporary"
     ATTACHED = "attached"
     PERMANENT = "permanent"
+
+
+class FileContext(TypedDict):
+    """Дополнительный контекст файловых метаданных"""
+
+    created_by: NotRequired[UUID]
+    tenant: str
+    entity_type: str
+    entity_id: str

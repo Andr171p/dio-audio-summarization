@@ -5,7 +5,7 @@ from fastapi import APIRouter, status
 
 from modules.chat.domain import Message
 
-router = APIRouter(prefix="/messages", tags=["Messages"], route_class=DishkaRoute)
+router = APIRouter(prefix="/messages", tags=["Messages 💬"], route_class=DishkaRoute)
 
 
 @router.get(
