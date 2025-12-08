@@ -45,11 +45,18 @@ class AppError(Exception, ABC):
 
     def to_dict(self) -> dict[str, Any]:
         """Преобразование в словарь для API responses"""
+
         return {
             "code": self.code,
             "message": self.message,
             "details": self.details,
         }
+
+    def __str__(self) -> str:
+        message = f"AppError [{self.type.value}]: {self.message}, details: {self.details}"
+        if self.original_error is not None:
+            message += f"\nOriginal error: {self.original_error}"
+        return message
 
 
 class InvariantViolationError(AppError):

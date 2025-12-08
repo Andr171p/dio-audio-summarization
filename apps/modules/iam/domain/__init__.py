@@ -1,5 +1,8 @@
 __all__ = (
+    "AnonymousUser",
     "AuthProvider",
+    "BaseUser",
+    "GuestSession",
     "SocialAccount",
     "TokenPair",
     "TokenType",
@@ -8,9 +11,10 @@ __all__ = (
     "UserCredentials",
     "UserRole",
     "UserStatus",
+    "UserT",
 )
 
-from .entities import SocialAccount, User
+from .entities import AnonymousUser, BaseUser, GuestSession, SocialAccount, User, UserT
 from .value_objects import (
     AuthProvider,
     TokenPair,

@@ -1,11 +1,10 @@
 from typing import Any, Self
 
-from collections import UserList
 from uuid import UUID
 
 from pydantic import Field, PositiveInt, computed_field, model_validator
 
-from modules.shared_kernel.domain import AggregateRoot, Entity
+from modules.shared_kernel.domain import AggregateRoot, CustomListPrimitive, Entity
 
 from .value_objects import MessageRole
 
@@ -28,7 +27,7 @@ class Message(Entity):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class Conversation(UserList[Message]):
+class Conversation(CustomListPrimitive[Message]):
     """Текущий диалог ИИ с пользователем"""
 
     def to_markdown(self) -> str:

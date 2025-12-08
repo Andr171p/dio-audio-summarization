@@ -3,6 +3,8 @@ __all__ = (
     "AppError",
     "Command",
     "CommandT",
+    "CustomListPrimitive",
+    "CustomStrPrimitive",
     "Entity",
     "ErrorType",
     "Event",
@@ -18,5 +20,5 @@ from .commands import Command, CommandT, Query, QueryT
 from .entities import AggregateRoot, Entity
 from .event import Event, EventT
 from .exceptions import AppError, ErrorType, InvariantViolationError
-from .primitives import StrPrimitive
+from .primitives import CustomListPrimitive, CustomStrPrimitive, StrPrimitive
 from .value_objects import ValueObject

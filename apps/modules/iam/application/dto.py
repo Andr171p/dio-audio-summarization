@@ -1,6 +1,6 @@
 from uuid import UUID, uuid4
 
-from pydantic import EmailStr, Field, PositiveFloat
+from pydantic import EmailStr, Field, IPvAnyAddress, PositiveFloat
 
 from modules.iam.domain import UserRole, UserStatus
 from modules.shared_kernel.application import DTO
@@ -39,3 +39,11 @@ class CurrentUser(DTO):
     email: EmailStr | None = None
     status: UserStatus
     role: UserRole
+
+
+class AnonymousIdentity(DTO):
+    """Идентификационные данные для анонимного пользователя"""
+
+    session_id: UUID | None
+    ip_adress: IPvAnyAddress
+    user_agent: str

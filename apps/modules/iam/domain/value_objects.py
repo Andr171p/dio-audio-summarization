@@ -8,10 +8,27 @@ from pydantic import EmailStr, HttpUrl
 from modules.shared_kernel.domain import ValueObject
 
 
+class GuestSessionStatus(StrEnum):
+    """Статус гостевой сессии
+
+    Attributes:
+        ACTIVE: Активная сессия, можно пользоваться гостевым функционалом.
+        EXPIRED: Время сессии истекло.
+        CONVERTED: Конвертирована в полноценного пользователя.
+        LIMIT_EXCEEDED: Превышены лимиты.
+    """
+
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    CONVERTED = "converted"
+    LIMIT_EXCEEDED = "limit_exceeded"
+
+
 class UserStatus(StrEnum):
     """Статус пользователя в системе
 
     Attributes:
+        ANONYMOUS: Использует гостевой доступ.
         PENDING_EMAIL_VERIFICATION: Зарегистрирован через credentials, пока не подтвердил email.
         EMAIL_VERIFIED: Подтверждён email
         (автоматически устанавливается при регистрации через социальные сети)
@@ -19,6 +36,7 @@ class UserStatus(StrEnum):
         DELETED: Пользователь был удалён
     """
 
+    ANONYMOUS = "anonymous"
     PENDING_EMAIL_VERIFICATION = "pending_email_verification"
     EMAIL_VERIFIED = "email_verified"
     BANNED = "banned"
@@ -61,10 +79,16 @@ class ProfileInfo(TypedDict):
     avatar_url: NotRequired[HttpUrl]
 
 
-class AuthProvider(StrEnum):
-    """Возможные провайдеры для регистрации и аутентификации пользователей"""
+class AuthMethod(StrEnum):
+    """Возможные методы для регистрации и аутентификации пользователей"""
 
     CREDENTIALS = "credentials"
+    OAUTH2 = "oauth2"
+
+
+class AuthProvider(StrEnum):
+    """Возможные внешние провайдеры для регистрации и аутентификации пользователей"""
+
     VK = "VK"
     Yandex = "Yandex"
     MAX = "Max"

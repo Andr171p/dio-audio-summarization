@@ -1,6 +1,7 @@
 from typing import Any, Self
 
 from abc import ABC, abstractmethod
+from collections import UserList, UserString
 from collections.abc import Callable
 
 from pydantic_core import CoreSchema, core_schema
@@ -19,6 +20,54 @@ class StrPrimitive(str, ABC):  # noqa: SLOT000
     @abstractmethod
     def validate(cls, value: str) -> str:
         """Логика валидации и проверки значений строки"""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+            cls,
+            source_type: Any,
+            handler: Callable[[Any], CoreSchema],
+    ) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.str_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(str),
+        )
+
+
+class CustomStrPrimitive(UserString):
+    def __init__(self, seq: str) -> None:
+        super().__init__(seq)
+        self.data = self.validate(self.data)
+
+    @classmethod
+    def validate(cls, value: str) -> str:
+        """Переопределить для реализации валидации"""
+
+        return value
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+            cls,
+            source_type: Any,
+            handler: Callable[[Any], CoreSchema],
+    ) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.str_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(str),
+        )
+
+
+class CustomListPrimitive(UserList):
+    def __init__(self, initlist: list[Any]) -> None:
+        super().__init__(initlist)
+        self.data = self.validate(self.data)
+
+    @classmethod
+    def validate(cls, value: list[Any]) -> list[Any]:
+        """Переопределить для реализации валидации"""
+
+        return value
 
     @classmethod
     def __get_pydantic_core_schema__(

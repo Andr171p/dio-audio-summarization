@@ -7,7 +7,9 @@ from config.dev import settings
 from modules.shared_kernel.application import KeyValueCache, MessageBus, UnitOfWork
 
 from ..domain import (
+    AnonymousUser,
     AuthProvider,
+    GuestSession,
     SocialAccount,
     TokenPair,
     TokenType,
@@ -19,7 +21,7 @@ from ..domain.exceptions import InvalidTokenError, TokenExpiredError
 from ..infrastructure.oauth import vk_oauth_client
 from ..utils.common import expires_at
 from ..utils.security import decode_token, issue_token
-from .dto import InitiatedOAuthFlow, PKCESession, VKCallback
+from .dto import AnonymousIdentity, InitiatedOAuthFlow, PKCESession, VKCallback
 from .exceptions import (
     AlreadyRegisteredError,
     InvalidPKCEError,
@@ -65,6 +67,30 @@ def verify_token(token: str) -> UserClaims:
         logger.exception(error_message)
         raise UnauthorizedError(error_message) from e
     return UserClaims.model_validate({"active": True, **payload})
+
+
+class AnonymousUserService:
+    def __init__(
+            self, uow: UnitOfWork, repository: UserRepository, cache: KeyValueCache[GuestSession]
+    ) -> None:
+        self._uow = uow
+        self._repository = repository
+        self._cache = cache
+
+    async def get_or_create(self, identity: AnonymousIdentity) -> ...:
+        if identity.session_id is None:
+            user = AnonymousUser.create()
+            session = GuestSession(
+                user_id=user.id, ip_adress=identity.ip_adress, user_agent=identity.user_agent
+            )
+            async with self._uow as uow:
+                await self._repository.create(user)
+                await self._cache.set(str(session.id), session)
+                await uow.commit()
+            return user
+        session = await self._cache.get(str(identity.session_id))
+        user = await self._repository.read(session.session_id)
+        return ...
 
 
 class CredentialsAuthService:

@@ -1,14 +1,20 @@
-from typing import Any, Self
+from typing import Any, Self, TypeVar, override
 
-from pydantic import EmailStr, Field, model_validator
+from abc import ABC, abstractmethod
+from uuid import UUID
+
+from pydantic import EmailStr, Field, IPvAnyAddress, PositiveFloat, model_validator
 
 from config.dev import settings
 from modules.shared_kernel.domain import Entity, InvariantViolationError
+from modules.shared_kernel.utils import current_datetime
 
+from ..utils.common import generate_guest_name
 from ..utils.security import hash_secret, verify_secret
 from .events import UserRegisteredEvent
 from .exceptions import InvalidCredentialsError, UserNotEnabledError
 from .value_objects import (
+    AuthMethod,
     AuthProvider,
     ProfileInfo,
     UserCredentials,
@@ -43,7 +49,19 @@ class SocialAccount(Entity):
         )
 
 
-class User(Entity):
+class BaseUser(Entity, ABC):
+    """Базовая модель для имплементации пользователя"""
+
+    username: str | None
+    role: UserRole
+    status: UserStatus
+
+    @abstractmethod
+    def to_jwt_payload(self, **kwargs) -> dict[str, Any]:
+        """Полезная нагрузка для JWT"""
+
+
+class User(BaseUser):
     """Модель пользователя.
 
     Примечания:
@@ -57,16 +75,13 @@ class User(Entity):
         role: Системная роль пользователя
         status: Системный статус пользователя
         social_accounts: Учётные записи внешних провайдеров
-        auth_providers: Способы, которые может использовать пользователь для аутентификации
+        auth_methods: Способы, которые может использовать пользователь для аутентификации
     """
 
     email: EmailStr | None = None
-    username: str
     password_hash: str | None = Field(default=None, exclude=True)
-    role: UserRole
-    status: UserStatus
     social_accounts: list[SocialAccount] = Field(default_factory=list)
-    auth_providers: set[AuthProvider] = Field(default_factory=set)
+    auth_methods: set[AuthMethod] = Field(default_factory=set)
 
     @model_validator(mode="after")
     def _validate_invariant(self) -> Self:
@@ -79,7 +94,7 @@ class User(Entity):
                 details={"user_id": f"{self.id}", "status": self.status, "role": self.role},
             )
         has_email, has_password_hash = self.email is not None, self.password_hash is not None
-        if AuthProvider.CREDENTIALS in self.auth_providers:
+        if AuthMethod.CREDENTIALS in self.auth_methods:
             if not has_email:
                 raise InvariantViolationError(
                     "Email is required for credentials authentication",
@@ -87,7 +102,7 @@ class User(Entity):
                     details={
                         "user_id": f"{self.id}",
                         "status": self.status,
-                        "auth_providers": self.auth_providers
+                        "auth_methods": self.auth_methods
                     },
                 )
             if not has_password_hash:
@@ -100,6 +115,7 @@ class User(Entity):
 
     def to_jwt_payload(self, **kwargs) -> dict[str, Any]:
         """Получение полезной нагрузки для JWT"""
+
         return {
             "iss": settings.app.url,
             "sub": f"{self.id}",
@@ -128,7 +144,7 @@ class User(Entity):
             role=UserRole.GUEST,
             status=UserStatus.PENDING_EMAIL_VERIFICATION,
             password_hash=hash_secret(credentials.password),
-            auth_providers={AuthProvider.CREDENTIALS}
+            auth_methods={AuthMethod.CREDENTIALS}
         )
         cls._register_event(
             user, UserRegisteredEvent(user_id=user.id, user_status=user.status, email=user.email)
@@ -147,7 +163,7 @@ class User(Entity):
             status=status,
             role=role,
             social_accounts=[social_account],
-            auth_providers={social_account.provider}
+            auth_mathods={AuthMethod.OAUTH2}
         )
         cls._register_event(
             user, UserRegisteredEvent(user_id=user.id, user_status=user.status, email=user.email)
@@ -168,5 +184,40 @@ class User(Entity):
         return self
 
 
-class Admin(User):
-    role: UserRole = Field(default=UserRole.ADMIN)
+class GuestSession(Entity):
+    """Гостевая сессия для анонимных пользователей"""
+
+    user_id: UUID
+    ip_adress: IPvAnyAddress
+    user_agent: str
+    created_at: PositiveFloat = Field(default_factory=current_datetime().timestamp)
+
+
+class AnonymousUser(BaseUser):
+    """Анонимный пользователь"""
+
+    username: str = Field(default_factory=generate_guest_name)
+    role: UserRole = Field(default=UserRole.GUEST, frozen=True)
+    status: UserStatus = Field(default=UserStatus.ANONYMOUS, frozen=True)
+
+    @override
+    def to_jwt_payload(self, **kwargs) -> dict[str, Any]:
+        """Получение полезной нагрузки для JWT"""
+
+        return {
+            "iss": settings.app.url,
+            "sub": f"{self.id}",
+            "username": self.username,
+            "status": self.status.value,
+            "role": self.role.value,
+            **kwargs,
+        }
+
+    @classmethod
+    def create(cls) -> Self:
+        """Фабричный метод для создания анонимного пользователя"""
+
+        return cls()
+
+
+UserT = TypeVar("UserT", bound=User | AnonymousUser)

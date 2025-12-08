@@ -3,21 +3,42 @@ from uuid import UUID
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from modules.shared_kernel.insrastructure.database import Base, JsonField, StrArray, StrUniqueNull
+from modules.shared_kernel.insrastructure.database import (
+    Base,
+    JsonField,
+    StrArray,
+    StrNull,
+    StrUniqueNull,
+)
 
 
-class UserModel(Base):
+class BaseUserModel(Base):
     __tablename__ = "users"
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_on": "type",
+        "polymorphic_identity": "base",
+    }
 
-    email: Mapped[StrUniqueNull]
-    username: Mapped[StrUniqueNull]
-    password_hash: Mapped[StrUniqueNull]
+    type: Mapped[str] = mapped_column(default="base")
+
+    username: Mapped[StrNull]
     status: Mapped[str]
     role: Mapped[str]
+
+
+class AnonymousUserModel(BaseUserModel):
+    __mapper_args__ = {"polymorphic_identity": "anonymous"}  # noqa: RUF012
+
+
+class UserModel(BaseUserModel):
+    __mapper_args__ = {"polymorphic_identity": "user"}  # noqa: RUF012
+
+    email: Mapped[StrUniqueNull]
+    password_hash: Mapped[StrUniqueNull]
     social_accounts: Mapped[list["SocialAccountModel"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", lazy="selectin"
     )
-    auth_providers: Mapped[StrArray]
+    auth_methods: Mapped[StrArray]
 
 
 class SocialAccountModel(Base):

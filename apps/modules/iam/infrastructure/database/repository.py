@@ -1,59 +1,74 @@
+from typing import TypeVar
+
 from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, with_polymorphic
 
 from modules.shared_kernel.application.exceptions import ReadingError
 from modules.shared_kernel.insrastructure.database import DataMapper, SQLAlchemyRepository
 
 from ...application import UserRepository
-from ...domain import AuthProvider, User
-from .models import SocialAccountModel, UserModel
+from ...domain import AnonymousUser, AuthProvider, User, UserT
+from .models import AnonymousUserModel, BaseUserModel, SocialAccountModel, UserModel
+
+UserModelT = TypeVar("UserModelT", bound=AnonymousUserModel | UserModel)
 
 
-class UserDataMapper(DataMapper[User, UserModel]):
+class UserDataMapper(DataMapper[UserT, UserModelT]):
     @classmethod
-    def model_to_entity(cls, model: UserModel) -> User:
-        return User.model_validate({
+    def model_to_entity(cls, model: UserModelT) -> UserT:
+        if isinstance(model, UserModel):
+            return User.model_validate({
+                "id": model.id,
+                "username": model.username,
+                "email": model.email,
+                "password_hash": model.password_hash,
+                "status": model.status,
+                "role": model.role,
+                "social_accounts": model.social_accounts,
+                "auth_methods": model.auth_methods,
+            })
+        return AnonymousUser.model_validate({
             "id": model.id,
             "username": model.username,
-            "email": model.email,
-            "password_hash": model.password_hash,
             "status": model.status,
             "role": model.role,
-            "social_accounts": model.social_accounts,
-            "auth_providers": model.auth_providers,
         })
 
     @classmethod
-    def entity_to_model(cls, entity: User) -> UserModel:
-        return UserModel(
-            id=entity.id,
-            username=entity.username,
-            email=entity.email,
-            password_hash=entity.password_hash,
-            status=entity.status,
-            role=entity.role,
-            social_accounts=[
-                SocialAccountModel(
-                    provider=social_account.provider,
-                    social_user_id=social_account.social_user_id,
-                    profile_info=social_account.profile_info,
-                )
-                for social_account in entity.social_accounts
-            ],
-            auth_providers=entity.auth_providers,
+    def entity_to_model(cls, entity: UserT) -> UserModelT:
+        if isinstance(entity, User):
+            return UserModel(
+                id=entity.id,
+                username=entity.username,
+                email=entity.email,
+                password_hash=entity.password_hash,
+                status=entity.status,
+                role=entity.role,
+                social_accounts=[
+                    SocialAccountModel(
+                        provider=social_account.provider,
+                        social_user_id=social_account.social_user_id,
+                        profile_info=social_account.profile_info,
+                    )
+                    for social_account in entity.social_accounts
+                ],
+                auth_methods=entity.auth_methods,
+            )
+        return AnonymousUserModel(
+            id=entity.id, username=entity.username, status=entity.status, role=entity.role
         )
 
 
 class SQLAlchemyUserRepository(SQLAlchemyRepository[User, UserModel], UserRepository):
     entity = User
-    model = UserModel
+    model = BaseUserModel
     data_mapper = UserDataMapper
 
     async def get_by_email(self, email: EmailStr) -> User | None:
         try:
-            stmt = select(self.model).where(self.model.email == email)
+            stmt = select(UserModel).where(UserModel.email == email)
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
             return None if model is None else self.data_mapper.model_to_entity(model)
@@ -67,13 +82,13 @@ class SQLAlchemyUserRepository(SQLAlchemyRepository[User, UserModel], UserReposi
     ) -> User | None:
         try:
             stmt = (
-                select(self.model)
+                select(UserModel)
                 .join(SocialAccountModel)
                 .where(
                     (SocialAccountModel.provider == provider) &
                     (SocialAccountModel.social_user_id == social_user_id)
                 )
-                .options(joinedload(self.model.social_accounts))
+                .options(joinedload(UserModel.social_accounts))
             )
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()

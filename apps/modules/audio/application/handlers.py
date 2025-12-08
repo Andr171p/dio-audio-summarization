@@ -1,7 +1,7 @@
-from ..domain import SummarizeAudioCommand
+from ..domain import SummarizeMeetingCommand
 
 
-class SummarizeAudioCommandHandler:
+class SummarizeMeetingCommandHandler:
     def __init__(self) -> None: ...
 
-    async def handle(self, command: SummarizeAudioCommand) -> ...: ...
+    async def handle(self, command: SummarizeMeetingCommand) -> ...: ...
