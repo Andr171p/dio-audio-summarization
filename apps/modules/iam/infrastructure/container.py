@@ -7,7 +7,7 @@ from config.dev import settings
 from modules.shared_kernel.application import KeyValueCache, UnitOfWork
 from modules.shared_kernel.application.message_bus import LogMessageBus
 
-from ..application import CredentialsAuthService, UserRepository, VKAuthService
+from ..application import CredentialsAuthService, GuestService, UserRepository, VKAuthService
 from ..application.dto import PKCESession
 from .cache import PKCESessionCache
 from .database import SQLAlchemyUserRepository
@@ -17,6 +17,10 @@ class IAMProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def provide_user_repo(self, session: AsyncSession) -> UserRepository:  # noqa: PLR6301
         return SQLAlchemyUserRepository(session)
+
+    @provide(scope=Scope.REQUEST)
+    def provide_guest_service(self, uow: UnitOfWork, user_repo: UserRepository) -> GuestService:  # noqa: PLR6301
+        return GuestService(uow=uow, repository=user_repo)
 
     @provide(scope=Scope.APP)
     def provide_pkce_session_cache(self) -> KeyValueCache[PKCESession]:  # noqa: PLR6301
