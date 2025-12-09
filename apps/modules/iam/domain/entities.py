@@ -193,7 +193,7 @@ class GuestSession(Entity):
     created_at: PositiveFloat = Field(default_factory=current_datetime().timestamp)
 
 
-class AnonymousUser(BaseUser):
+class Anonymous(BaseUser):
     """Анонимный пользователь"""
 
     username: str = Field(default_factory=generate_guest_name)
@@ -220,4 +220,4 @@ class AnonymousUser(BaseUser):
         return cls()
 
 
-UserT = TypeVar("UserT", bound=User | AnonymousUser)
+UserT = TypeVar("UserT", bound=User | Anonymous)

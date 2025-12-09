@@ -17,6 +17,7 @@ class BaseUserModel(Base):
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_on": "type",
         "polymorphic_identity": "base",
+        "with_polymorphic": "*",
     }
 
     type: Mapped[str] = mapped_column(default="base")
@@ -26,7 +27,7 @@ class BaseUserModel(Base):
     role: Mapped[str]
 
 
-class AnonymousUserModel(BaseUserModel):
+class AnonymousModel(BaseUserModel):
     __mapper_args__ = {"polymorphic_identity": "anonymous"}  # noqa: RUF012
 
 

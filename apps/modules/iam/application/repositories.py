@@ -4,10 +4,10 @@ from pydantic import EmailStr
 
 from modules.shared_kernel.application import CRUDRepository
 
-from ..domain import AuthProvider, User
+from ..domain import Anonymous, AuthProvider, User
 
 
-class UserRepository(CRUDRepository[User]):
+class UserRepository(CRUDRepository[User | Anonymous]):
     @abstractmethod
     async def get_by_email(self, email: EmailStr) -> User | None: ...
 

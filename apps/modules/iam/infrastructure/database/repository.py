@@ -3,16 +3,16 @@ from typing import TypeVar
 from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload, with_polymorphic
+from sqlalchemy.orm import joinedload
 
 from modules.shared_kernel.application.exceptions import ReadingError
 from modules.shared_kernel.insrastructure.database import DataMapper, SQLAlchemyRepository
 
 from ...application import UserRepository
-from ...domain import AnonymousUser, AuthProvider, User, UserT
-from .models import AnonymousUserModel, BaseUserModel, SocialAccountModel, UserModel
+from ...domain import Anonymous, AuthProvider, User, UserT
+from .models import AnonymousModel, BaseUserModel, SocialAccountModel, UserModel
 
-UserModelT = TypeVar("UserModelT", bound=AnonymousUserModel | UserModel)
+UserModelT = TypeVar("UserModelT", bound=AnonymousModel | UserModel)
 
 
 class UserDataMapper(DataMapper[UserT, UserModelT]):
@@ -28,12 +28,14 @@ class UserDataMapper(DataMapper[UserT, UserModelT]):
                 "role": model.role,
                 "social_accounts": model.social_accounts,
                 "auth_methods": model.auth_methods,
+                "created_at": model.created_at,
             })
-        return AnonymousUser.model_validate({
+        return Anonymous.model_validate({
             "id": model.id,
             "username": model.username,
             "status": model.status,
             "role": model.role,
+            "created_at": model.created_at,
         })
 
     @classmethod
@@ -55,9 +57,14 @@ class UserDataMapper(DataMapper[UserT, UserModelT]):
                     for social_account in entity.social_accounts
                 ],
                 auth_methods=entity.auth_methods,
+                created_at=entity.created_at,
             )
-        return AnonymousUserModel(
-            id=entity.id, username=entity.username, status=entity.status, role=entity.role
+        return AnonymousModel(
+            id=entity.id,
+            username=entity.username,
+            status=entity.status,
+            role=entity.role,
+            created_at=entity.created_at,
         )
 
 

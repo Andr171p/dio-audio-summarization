@@ -7,7 +7,7 @@ from config.dev import settings
 from modules.shared_kernel.application import KeyValueCache, MessageBus, UnitOfWork
 
 from ..domain import (
-    AnonymousUser,
+    Anonymous,
     AuthProvider,
     GuestSession,
     SocialAccount,
@@ -69,7 +69,7 @@ def verify_token(token: str) -> UserClaims:
     return UserClaims.model_validate({"active": True, **payload})
 
 
-class AnonymousUserService:
+class AnonymousService:
     def __init__(
             self, uow: UnitOfWork, repository: UserRepository, cache: KeyValueCache[GuestSession]
     ) -> None:
@@ -79,7 +79,7 @@ class AnonymousUserService:
 
     async def get_or_create(self, identity: AnonymousIdentity) -> ...:
         if identity.session_id is None:
-            user = AnonymousUser.create()
+            user = Anonymous.create()
             session = GuestSession(
                 user_id=user.id, ip_adress=identity.ip_adress, user_agent=identity.user_agent
             )

@@ -10,7 +10,7 @@ from alembic import context
 from config.dev import settings
 from modules.shared_kernel.insrastructure.database import Base
 from modules.iam.infrastructure.database import (
-    AnonymousUserModel,
+    AnonymousModel,
     BaseUserModel,
     UserModel,
     SocialAccountModel,
