@@ -7,27 +7,30 @@ from config.dev import settings
 from modules.shared_kernel.application import KeyValueCache, MessageBus, UnitOfWork
 
 from ..domain import (
-    Anonymous,
     AuthProvider,
-    GuestSession,
+    Guest,
     SocialAccount,
+    Token,
     TokenPair,
     TokenType,
     User,
     UserClaims,
     UserCredentials,
+    UserRole,
 )
 from ..domain.exceptions import InvalidTokenError, TokenExpiredError
 from ..infrastructure.oauth import vk_oauth_client
 from ..utils.common import expires_at
 from ..utils.security import decode_token, issue_token
-from .dto import AnonymousIdentity, InitiatedOAuthFlow, PKCESession, VKCallback
+from .dto import GuestToken, InitiatedOAuthFlow, PKCESession, VKCallback
 from .exceptions import (
     AlreadyRegisteredError,
     InvalidPKCEError,
+    NoLongerGuestError,
     RegistrationRequiredError,
     UnauthorizedError,
 )
+from .queries import GetGuestQuery
 from .repositories import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -36,24 +39,39 @@ logger = logging.getLogger(__name__)
 def generate_token_pair(payload: dict[str, Any]) -> TokenPair:
     """Генерирует пару JWT токенов (access и refresh)
 
-    :param payload: Полезная нагрузка для JWT
+    :param payload: Полезная нагрузка для JWT.
     :return: Объект с access/refresh и прочими метаданными.
     """
+    access_token_expires_in = timedelta(minutes=settings.jwt.user_access_token_expires_in_minutes)
+    refresh_token_expires_in = timedelta(days=settings.jwt.user_refresh_token_expires_in_days)
     access_token = issue_token(
         token_type=TokenType.ACCESS,
         payload=payload,
-        expires_in=timedelta(minutes=settings.jwt.access_token_expires_in_minutes)
+        expires_in=access_token_expires_in,
     )
     refresh_token = issue_token(
         token_type=TokenType.REFRESH,
         payload=payload,
-        expires_in=timedelta(days=settings.jwt.refresh_token_expires_in_days)
+        expires_in=refresh_token_expires_in
     )
     return TokenPair(
         access_token=access_token,
         refresh_token=refresh_token,
-        expires_at=expires_at(timedelta(minutes=settings.jwt.access_token_expires_in_minutes))
+        expires_at=expires_at(access_token_expires_in),
     )
+
+
+def generate_access_token(payload: dict[str, Any]) -> Token:
+    """Генерирует access токен
+
+    :param payload: Полезная нагрузка которую нужно передать в токен
+    :returns: Объект с access токенов и его временем истечения в формате timestamp
+    """
+    expires_in = timedelta(days=settings.jwt.guest_access_token_expires_in_days)
+    access_token = issue_token(
+        token_type=TokenType.ACCESS, payload=payload
+    )
+    return Token(access_token=access_token, expires_at=expires_at(expires_in))
 
 
 def verify_token(token: str) -> UserClaims:
@@ -69,28 +87,58 @@ def verify_token(token: str) -> UserClaims:
     return UserClaims.model_validate({"active": True, **payload})
 
 
-class AnonymousService:
-    def __init__(
-            self, uow: UnitOfWork, repository: UserRepository, cache: KeyValueCache[GuestSession]
-    ) -> None:
+class GuestService:
+    def __init__(self, uow: UnitOfWork, repository: UserRepository) -> None:
         self._uow = uow
         self._repository = repository
-        self._cache = cache
 
-    async def get_or_create(self, identity: AnonymousIdentity) -> ...:
-        if identity.session_id is None:
-            user = Anonymous.create()
-            session = GuestSession(
-                user_id=user.id, ip_adress=identity.ip_adress, user_agent=identity.user_agent
-            )
+    async def _create_new(self, device_id: str | None = None) -> GuestToken:
+        """Создание нового гостя
+
+        :param device_id: Идентификатор устройства, полученный с клиента.
+        :returns: Гостевой токен.
+        """
+
+        async with self._uow as uow:
+            guest = Guest.create(device_id)
+            created_guest = await self._repository.create(guest)
+            await uow.commit()
+        payload = created_guest.to_jwt_payload()
+        token = generate_access_token(payload)
+        return GuestToken(
+            guest_id=created_guest.id,
+            access_token=token.access_token,
+            token_type=token.token_type,
+            expires_at=token.expires_at,
+        )
+
+    async def get_or_create(self, query: GetGuestQuery) -> GuestToken:
+        if query.guest_id is None:
+            return await self._create_new(query.device_id)
+        guest = await self._repository.read(query.guest_id)
+        if guest is None:
+            # Создание гостя если гость не был найден
+            return await self._create_new(query.device_id)
+        if guest.is_expired:
+            # Если гостевой доступ истёк, то создаётся новый
             async with self._uow as uow:
-                await self._repository.create(user)
-                await self._cache.set(str(session.id), session)
+                await self._repository.delete(guest.id)
                 await uow.commit()
-            return user
-        session = await self._cache.get(str(identity.session_id))
-        user = await self._repository.read(session.session_id)
-        return ...
+                return await self._create_new(query.device_id)
+        if guest.role != UserRole.GUEST:
+            # Пользователь теперь зарегистрирован (больше не гость)
+            raise NoLongerGuestError(
+                f"User `{guest.username}` is no longer a guest!",
+                details={"user_id": guest.id, "role": guest.role, "status": guest.status}
+            )
+        payload = guest.to_jwt_payload()
+        token = generate_access_token(payload)
+        return GuestToken(
+            guest_id=guest.id,
+            access_token=token.access_token,
+            token_type=token.token_type,
+            expires_at=token.expires_at,
+        )
 
 
 class CredentialsAuthService:

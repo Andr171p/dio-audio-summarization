@@ -1,10 +1,10 @@
 __all__ = (
-    "AnonymousModel",
     "BaseUserModel",
+    "GuestModel",
     "SQLAlchemyUserRepository",
     "SocialAccountModel",
     "UserModel",
 )
 
-from .models import AnonymousModel, BaseUserModel, SocialAccountModel, UserModel
+from .models import BaseUserModel, GuestModel, SocialAccountModel, UserModel
 from .repository import SQLAlchemyUserRepository

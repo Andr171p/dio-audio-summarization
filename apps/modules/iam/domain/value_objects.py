@@ -3,7 +3,7 @@ from typing import NotRequired, TypedDict
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import EmailStr, HttpUrl
+from pydantic import EmailStr, Field, HttpUrl, PositiveInt
 
 from modules.shared_kernel.domain import ValueObject
 
@@ -100,10 +100,17 @@ class TokenType(StrEnum):
     REFRESH = "refresh"
 
 
+class Token(ValueObject):
+    access_token: str
+    token_type: str = Field(default="Bearer", frozen=True)
+    expires_at: PositiveInt
+
+
 class TokenPair(ValueObject):
     access_token: str
     refresh_token: str
-    expires_at: int
+    token_type: str = Field(default="Bearer", frozen=True)
+    expires_at: PositiveInt
 
 
 class JWTClaims(ValueObject):

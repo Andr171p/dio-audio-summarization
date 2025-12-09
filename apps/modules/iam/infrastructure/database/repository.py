@@ -9,15 +9,15 @@ from modules.shared_kernel.application.exceptions import ReadingError
 from modules.shared_kernel.insrastructure.database import DataMapper, SQLAlchemyRepository
 
 from ...application import UserRepository
-from ...domain import Anonymous, AuthProvider, User, UserT
-from .models import AnonymousModel, BaseUserModel, SocialAccountModel, UserModel
+from ...domain import AnyUser, AuthProvider, Guest, User
+from .models import BaseUserModel, GuestModel, SocialAccountModel, UserModel
 
-UserModelT = TypeVar("UserModelT", bound=AnonymousModel | UserModel)
+AnyUserModel = TypeVar("AnyUserModel", bound=UserModel | GuestModel)
 
 
-class UserDataMapper(DataMapper[UserT, UserModelT]):
+class UserDataMapper(DataMapper[AnyUser, AnyUserModel]):
     @classmethod
-    def model_to_entity(cls, model: UserModelT) -> UserT:
+    def model_to_entity(cls, model: AnyUserModel) -> AnyUser:
         if isinstance(model, UserModel):
             return User.model_validate({
                 "id": model.id,
@@ -30,8 +30,10 @@ class UserDataMapper(DataMapper[UserT, UserModelT]):
                 "auth_methods": model.auth_methods,
                 "created_at": model.created_at,
             })
-        return Anonymous.model_validate({
+        return Guest.model_validate({
             "id": model.id,
+            "device_id": model.device_id,
+            "expires_at": model.expires_at,
             "username": model.username,
             "status": model.status,
             "role": model.role,
@@ -39,7 +41,7 @@ class UserDataMapper(DataMapper[UserT, UserModelT]):
         })
 
     @classmethod
-    def entity_to_model(cls, entity: UserT) -> UserModelT:
+    def entity_to_model(cls, entity: AnyUser) -> AnyUserModel:
         if isinstance(entity, User):
             return UserModel(
                 id=entity.id,
@@ -59,8 +61,10 @@ class UserDataMapper(DataMapper[UserT, UserModelT]):
                 auth_methods=entity.auth_methods,
                 created_at=entity.created_at,
             )
-        return AnonymousModel(
+        return GuestModel(
             id=entity.id,
+            device_id=entity.device_id,
+            expires_at=entity.expires_at,
             username=entity.username,
             status=entity.status,
             role=entity.role,
@@ -68,10 +72,21 @@ class UserDataMapper(DataMapper[UserT, UserModelT]):
         )
 
 
-class SQLAlchemyUserRepository(SQLAlchemyRepository[User, UserModel], UserRepository):
+class SQLAlchemyUserRepository(SQLAlchemyRepository[AnyUser, AnyUserModel], UserRepository):
     entity = User
     model = BaseUserModel
     data_mapper = UserDataMapper
+
+    async def get_by_device_id(self, device_id: str) -> Guest | None:
+        try:
+            stmt = select(GuestModel).where(GuestModel.device_id == device_id)
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
+            return None if model is None else self.data_mapper.model_to_entity(model)
+        except SQLAlchemyError as e:
+            raise ReadingError(
+                entity_name=self.entity.__name__, entity_id=device_id, original_error=e
+            ) from e
 
     async def get_by_email(self, email: EmailStr) -> User | None:
         try:

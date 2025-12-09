@@ -1,6 +1,7 @@
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from modules.shared_kernel.insrastructure.database import (
@@ -27,8 +28,11 @@ class BaseUserModel(Base):
     role: Mapped[str]
 
 
-class AnonymousModel(BaseUserModel):
+class GuestModel(BaseUserModel):
     __mapper_args__ = {"polymorphic_identity": "anonymous"}  # noqa: RUF012
+
+    device_id: Mapped[StrUniqueNull]
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class UserModel(BaseUserModel):

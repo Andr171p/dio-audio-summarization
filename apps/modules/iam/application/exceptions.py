@@ -3,6 +3,18 @@ from typing import Any
 from modules.shared_kernel.domain import AppError, ErrorType
 
 
+class NoLongerGuestError(AppError):
+    """Пользователь больше не является гостем"""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(
+            message=message,
+            type=ErrorType.NOT_FOUND,
+            code="USER_IS_NO_LONGER_GUEST",
+            details=details
+        )
+
+
 class AlreadyRegisteredError(AppError):
     """Пользователь уже зарегистрирован"""
 

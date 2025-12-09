@@ -1,9 +1,9 @@
 from typing import Any, Self, TypeVar, override
 
 from abc import ABC, abstractmethod
-from uuid import UUID
+from datetime import datetime, timedelta
 
-from pydantic import EmailStr, Field, IPvAnyAddress, PositiveFloat, model_validator
+from pydantic import EmailStr, Field, computed_field, model_validator
 
 from config.dev import settings
 from modules.shared_kernel.domain import Entity, InvariantViolationError
@@ -184,21 +184,20 @@ class User(BaseUser):
         return self
 
 
-class GuestSession(Entity):
-    """Гостевая сессия для анонимных пользователей"""
+class Guest(BaseUser):
+    """Гость - пользователь, не прошедший регистрацию.
+    Для предоставления временного доступа к контенту.
+    """
 
-    user_id: UUID
-    ip_adress: IPvAnyAddress
-    user_agent: str
-    created_at: PositiveFloat = Field(default_factory=current_datetime().timestamp)
-
-
-class Anonymous(BaseUser):
-    """Анонимный пользователь"""
-
+    device_id: str | None = None
+    expires_at: datetime = Field(..., frozen=True)
     username: str = Field(default_factory=generate_guest_name)
     role: UserRole = Field(default=UserRole.GUEST, frozen=True)
     status: UserStatus = Field(default=UserStatus.ANONYMOUS, frozen=True)
+
+    @computed_field(description="Закончился ли гостевой период")
+    def is_expired(self) -> bool:
+        return current_datetime().timestamp() >= self.expires_at.timestamp()
 
     @override
     def to_jwt_payload(self, **kwargs) -> dict[str, Any]:
@@ -207,6 +206,7 @@ class Anonymous(BaseUser):
         return {
             "iss": settings.app.url,
             "sub": f"{self.id}",
+            "device_id": self.device_id,
             "username": self.username,
             "status": self.status.value,
             "role": self.role.value,
@@ -214,10 +214,11 @@ class Anonymous(BaseUser):
         }
 
     @classmethod
-    def create(cls) -> Self:
+    def create(cls, device_id: str | None = None) -> Self:
         """Фабричный метод для создания анонимного пользователя"""
 
-        return cls()
+        guest_expires_in = timedelta(days=settings.jwt.guest_access_token_expires_in_days)
+        return cls(device_id=device_id, expires_at=current_datetime() + guest_expires_in)
 
 
-UserT = TypeVar("UserT", bound=User | Anonymous)
+AnyUser = TypeVar("AnyUser", bound=User | Guest)

@@ -68,8 +68,9 @@ class SaluteSpeechSettings(BaseSettings):
 class JWTSettings(BaseSettings):
     secret_key: str = "<SECRET_KEY>"
     algorithm: str = "HS256"
-    access_token_expires_in_minutes: int = 15
-    refresh_token_expires_in_days: int = 7
+    user_access_token_expires_in_minutes: int = 15
+    user_refresh_token_expires_in_days: int = 7
+    guest_access_token_expires_in_days: int = 10
 
     model_config = SettingsConfigDict(env_prefix="JWT_")
 
