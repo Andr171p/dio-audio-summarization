@@ -36,3 +36,12 @@ async def create_workspace(
         "owner_id": current_user.user_id, **body.model_dump()
     })
     return await usecase.execute(command)
+
+
+@router.post(
+    path="/{workspace_id}/invitations",
+    status_code=status.HTTP_201_CREATED,
+    response_model=...,
+    summary="Приглашает участника в рабочую область",
+)
+async def invite_to_workspace() -> ...: ...

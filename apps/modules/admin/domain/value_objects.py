@@ -1,6 +1,14 @@
 from enum import StrEnum
 
 
+class InvitationStatus(StrEnum):
+    """Статус приглашения"""
+
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REVOKED = "revoked"
+
+
 class WorkspaceType(StrEnum):
     """Тип рабочего пространства"""
 

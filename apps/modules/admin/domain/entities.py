@@ -1,14 +1,33 @@
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
+if TYPE_CHECKING:
+    from modules.iam.domain import UserRole
+
+from datetime import datetime, timedelta
 from uuid import UUID
 
-from pydantic import HttpUrl, NonNegativeInt
+from pydantic import EmailStr, HttpUrl, NonNegativeInt
 
-from modules.shared_kernel.domain import AggregateRoot
+from modules.shared_kernel.domain import AggregateRoot, Entity
+from modules.shared_kernel.utils import current_datetime
 
-from .commands import CreateWorkspaceCommand
-from .events import WorkspaceCreatedEvent
-from .value_objects import OrganizationType, WorkspaceType
+from ..utils.security import generate_token
+from .commands import CreateWorkspaceCommand, InviteMemberCommand
+from .events import MemberInvitedEvent, WorkspaceCreatedEvent
+from .value_objects import InvitationStatus, OrganizationType, WorkspaceType
+
+INVITATION_EXPIRES_AT_DAYS = 7
+
+
+class Invitation(Entity):
+    """Приглашение пользователя в рабочее пространство"""
+
+    workspace_id: UUID
+    email: EmailStr
+    member_role: "UserRole"
+    token: str
+    expires_at: datetime
+    status: InvitationStatus
 
 
 class Workspace(AggregateRoot):
@@ -59,3 +78,23 @@ class Workspace(AggregateRoot):
             use_ai_consultant=workspace.use_ai_consultant,
         ))
         return workspace
+
+    def invite_member(self, command: InviteMemberCommand) -> Invitation:
+        if self.id != command.workspace_id:
+            # Ошибка! Не соответствуют идентификаторы
+            raise ...
+        invitation = Invitation(
+            workspace_id=command.workspace_id,
+            email=command.email,
+            member_role=command.member_role,
+            token=generate_token(),
+            expires_at=current_datetime() + timedelta(days=INVITATION_EXPIRES_AT_DAYS),
+            status=InvitationStatus.PENDING,
+        )
+        self._register_event(MemberInvitedEvent(
+            workspace_id=self.id,
+            email=invitation.email,
+            member_role=invitation.member_role,
+            token=invitation.token
+        ))
+        return invitation

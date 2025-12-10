@@ -1,6 +1,11 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from modules.iam.domain import UserRole
+
 from uuid import UUID
 
-from pydantic import HttpUrl
+from pydantic import EmailStr, HttpUrl
 
 from modules.shared_kernel.domain import Command
 
@@ -16,3 +21,11 @@ class CreateWorkspaceCommand(Command):
     description: str | None = None
     organization_type: OrganizationType
     organization_url: HttpUrl | None = None
+
+
+class InviteMemberCommand(Command):
+    """Команда для приглашения участника в рабочее пространство"""
+
+    workspace_id: UUID
+    email: EmailStr
+    member_role: "UserRole"

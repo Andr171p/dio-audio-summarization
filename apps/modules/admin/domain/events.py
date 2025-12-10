@@ -1,8 +1,11 @@
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from modules.iam.domain import UserRole
 
 from uuid import UUID
 
-from pydantic import HttpUrl
+from pydantic import EmailStr, HttpUrl
 
 from modules.shared_kernel.domain import Event
 
@@ -18,3 +21,12 @@ class WorkspaceCreatedEvent(Event):
     organization_url: HttpUrl | None
     description: str | None
     use_ai_consultant: bool
+
+
+class MemberInvitedEvent(Event):
+    event_type: ClassVar[str] = "member_invited"
+
+    workspace_id: UUID
+    email: EmailStr
+    member_role: "UserRole"
+    token: str
