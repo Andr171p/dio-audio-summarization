@@ -33,6 +33,7 @@ def create_fastapi_app() -> FastAPI:
 
 # Маппинг доменных ошибок к HTTP статус кодам
 HTTP_STATUS_CODE_MAP = {
+    ErrorType.UNAUTHORIZED: status.HTTP_401_UNAUTHORIZED,
     ErrorType.NOT_FOUND: status.HTTP_404_NOT_FOUND,
     ErrorType.CONFLICT: status.HTTP_409_CONFLICT,
     ErrorType.VALIDATION_ERROR: status.HTTP_422_UNPROCESSABLE_CONTENT,

@@ -9,6 +9,7 @@ from alembic import context
 
 from config.dev import settings
 from modules.shared_kernel.insrastructure.database import Base
+from modules.admin.infrastructure.database import WorkspaceModel
 from modules.iam.infrastructure.database import (
     BaseUserModel,
     GuestModel,

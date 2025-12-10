@@ -40,5 +40,5 @@ class AggregateRoot(Entity, ABC):
     """Корень агрегата"""
 
     model_config = ConfigDict(
-        arbitrary_types_allowed=True, validate_assignment=True, frozen=False
+        arbitrary_types_allowed=True, from_attributes=True, validate_assignment=True, frozen=False
     )

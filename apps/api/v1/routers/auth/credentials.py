@@ -58,7 +58,7 @@ async def refresh() -> None: ...
     summary="Верификация токена"
 )
 async def verify(
-        token: Annotated[str, Body(..., description="Токен для верификации")]
+        token: Annotated[str, Body(..., embed=True, description="Токен для верификации")]
 ) -> UserClaims:
     return verify_token(token)
 

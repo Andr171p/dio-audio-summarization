@@ -9,7 +9,7 @@ from modules.chat.application import ChatRepository
 from modules.chat.domain import Chat
 from modules.iam.infrastructure.fastapi import CurrentUserDep
 
-router = APIRouter(prefix="/chats", tags=["Chat 🗫"], route_class=DishkaRoute)
+router = APIRouter(prefix="/chats", tags=["Chat"], route_class=DishkaRoute)
 
 
 @router.get(
