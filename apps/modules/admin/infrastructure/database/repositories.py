@@ -7,8 +7,8 @@ from modules.shared_kernel.application.exceptions import ConflictError, Creation
 from modules.shared_kernel.insrastructure.database import DataMapper, SQLAlchemyRepository
 
 from ...application import WorkspaceRepository
-from ...domain import Member, OrganizationType, Workspace, WorkspaceType
-from .models import MemberModel, WorkspaceModel
+from ...domain import Invitation, Member, OrganizationType, Workspace, WorkspaceType
+from .models import InvitationModel, MemberModel, WorkspaceModel
 
 
 class WorkspaceDataMapper(DataMapper[Workspace, WorkspaceModel]):
@@ -51,14 +51,17 @@ class MemberDataMapper(DataMapper[Member, MemberModel]):
 
     @classmethod
     def entity_to_model(cls, entity: Member) -> MemberModel:
-        return MemberModel(
-            id=entity.id,
-            workspace_id=entity.workspace_id,
-            user_id=entity.user_id,
-            role=entity.role,
-            status=entity.status,
-            created_at=entity.created_at,
-        )
+        return MemberModel(**entity.model_dump())
+
+
+class InvitationDataMapper(DataMapper[Invitation, InvitationModel]):
+    @classmethod
+    def model_to_entity(cls, model: InvitationModel) -> Invitation:
+        return Invitation.model_validate(model)
+
+    @classmethod
+    def entity_to_model(cls, entity: Invitation) -> InvitationModel:
+        return InvitationModel(**entity.model_dump())
 
 
 class SQLAlchemyWorkspaceRepository(
@@ -82,6 +85,26 @@ class SQLAlchemyWorkspaceRepository(
                 original_error=e
             ) from e
 
+    async def get_member(self, workspace_id: UUID, user_id: UUID) -> Member | None:
+        try:
+            stmt = (
+                select(MemberModel)
+                .where(
+                    (MemberModel.workspace_id == workspace_id) &
+                    (MemberModel.user_id == user_id)
+                )
+            )
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
+            return MemberDataMapper.model_to_entity(model) if model is not None else None
+        except SQLAlchemyError as e:
+            raise ReadingError(
+                entity_name="Member",
+                entity_id=user_id,
+                details={"workspace_id": workspace_id, "user_id": user_id},
+                original_error=e
+            ) from e
+
     async def add_member(self, member: Member) -> Member:
         try:
             model = MemberDataMapper.entity_to_model(member)
@@ -93,3 +116,15 @@ class SQLAlchemyWorkspaceRepository(
             raise ConflictError(entity_name="Member", original_error=e) from e
         except SQLAlchemyError as e:
             raise CreationError(entity_name="Member", original_error=e) from e
+
+    async def add_invitation(self, invitation: Invitation) -> Invitation:
+        try:
+            model = InvitationDataMapper.entity_to_model(invitation)
+            self.session.add(model)
+            await self.session.flush()
+            await self.session.refresh(model)
+            return InvitationDataMapper.model_to_entity(model)
+        except IntegrityError as e:
+            raise ConflictError(entity_name="Invitation", original_error=e) from e
+        except SQLAlchemyError as e:
+            raise CreationError(entity_name="Invitation", original_error=e) from e

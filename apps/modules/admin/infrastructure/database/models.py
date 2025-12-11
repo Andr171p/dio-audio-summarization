@@ -1,6 +1,7 @@
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, func, select
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func, select
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,6 +25,23 @@ class MemberModel(Base):
 
     workspace: Mapped["WorkspaceModel"] = relationship(back_populates="members")
 
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "user_id", name="member_uq"),
+    )
+
+
+class InvitationModel(Base):
+    __tablename__ = "invitations"
+
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id"), unique=False)
+    email: Mapped[str]
+    member_role: Mapped[str]
+    token: Mapped[str]
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str]
+
+    workspace: Mapped["WorkspaceModel"] = relationship(back_populates="invitations")
+
 
 class WorkspaceModel(Base):
     __tablename__ = "workspaces"
@@ -40,6 +58,7 @@ class WorkspaceModel(Base):
     members: Mapped[list["MemberModel"]] = relationship(
         back_populates="workspace", lazy="selectin"
     )
+    invitations: Mapped[list["InvitationModel"]] = relationship(back_populates="workspace")
 
     @hybrid_property
     def members_count(self) -> int:

@@ -23,5 +23,6 @@ class InviteMemberCommand(Command):
     """Команда для приглашения участника в рабочее пространство"""
 
     workspace_id: UUID
+    invited_by: UUID
     email: EmailStr
     member_role: MemberRole

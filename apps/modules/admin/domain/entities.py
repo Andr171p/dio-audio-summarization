@@ -39,6 +39,11 @@ class Member(Entity):
             status=MemberStatus.ACTIVE,
         )
 
+    def can_invite(self) -> bool:
+        """Проверка может ли участник приглашать других участников"""
+
+        return self.role in {MemberRole.OWNER, MemberRole.ADMIN, MemberRole.MEMBER}
+
 
 class Invitation(Entity):
     """Приглашение пользователя в рабочее пространство"""
