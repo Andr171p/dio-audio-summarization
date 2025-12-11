@@ -1,7 +1,7 @@
 from modules.shared_kernel.application import MessageBus, UnitOfWork
 
 from ..domain import CreateWorkspaceCommand, Workspace
-from .repository import WorkspaceRepository
+from .repositories import WorkspaceRepository
 
 
 class CreateWorkspaceUseCase:
@@ -14,9 +14,11 @@ class CreateWorkspaceUseCase:
 
     async def execute(self, command: CreateWorkspaceCommand) -> Workspace:
         async with self._uow.transactional() as uow:
-            workspace = Workspace.create(command)
+            workspace, owner = Workspace.create(command)
             await self._repository.create(workspace)
+            await self._repository.add_member(owner)
+            created_workspace = await self._repository.read(workspace.id)
             await uow.commit()
         for event in workspace.collect_events():
             await self._message_bus.send(event)
-        return workspace
+        return created_workspace

@@ -2,7 +2,7 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, status
 
 from modules.admin.application import CreateWorkspaceUseCase, WorkspaceRepository
-from modules.admin.application.dto import WorkspaceCreate
+from modules.admin.application.dto import SentInvitation, WorkspaceCreate
 from modules.admin.domain import CreateWorkspaceCommand, Workspace
 from modules.iam.infrastructure.fastapi import CurrentUserDep
 
@@ -33,7 +33,7 @@ async def create_workspace(
         usecase: FromDishka[CreateWorkspaceUseCase]
 ) -> Workspace:
     command = CreateWorkspaceCommand.model_validate({
-        "owner_id": current_user.user_id, **body.model_dump()
+        "user_id": current_user.user_id, **body.model_dump()
     })
     return await usecase.execute(command)
 
@@ -41,7 +41,7 @@ async def create_workspace(
 @router.post(
     path="/{workspace_id}/invitations",
     status_code=status.HTTP_201_CREATED,
-    response_model=...,
+    response_model=SentInvitation,
     summary="Приглашает участника в рабочую область",
 )
-async def invite_to_workspace() -> ...: ...
+async def invite_to_workspace() -> SentInvitation: ...

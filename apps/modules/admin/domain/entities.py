@@ -1,22 +1,43 @@
-from typing import TYPE_CHECKING, Self
-
-if TYPE_CHECKING:
-    from modules.iam.domain import UserRole
+from typing import Self
 
 from datetime import datetime, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import EmailStr, HttpUrl, NonNegativeInt
 
-from modules.shared_kernel.domain import AggregateRoot, Entity
-from modules.shared_kernel.utils import current_datetime
+from modules.shared_kernel.domain import AggregateRoot, Entity, InvariantViolationError
+from modules.shared_kernel.utils import current_datetime, generate_safe_string
 
-from ..utils.security import generate_token
 from .commands import CreateWorkspaceCommand, InviteMemberCommand
 from .events import MemberInvitedEvent, WorkspaceCreatedEvent
-from .value_objects import InvitationStatus, OrganizationType, WorkspaceType
+from .value_objects import (
+    InvitationStatus,
+    MemberRole,
+    MemberStatus,
+    OrganizationType,
+    WorkspaceType,
+)
 
 INVITATION_EXPIRES_AT_DAYS = 7
+
+
+class Member(Entity):
+    """Участник рабочего пространства"""
+
+    workspace_id: UUID
+    user_id: UUID
+    role: MemberRole
+    status: MemberStatus
+    invited_by: UUID | None = None
+
+    @classmethod
+    def create_owner(cls, workspace_id: UUID, user_id: UUID) -> Self:
+        return cls(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            role=MemberRole.OWNER,
+            status=MemberStatus.ACTIVE,
+        )
 
 
 class Invitation(Entity):
@@ -24,7 +45,7 @@ class Invitation(Entity):
 
     workspace_id: UUID
     email: EmailStr
-    member_role: "UserRole"
+    member_role: MemberRole
     token: str
     expires_at: datetime
     status: InvitationStatus
@@ -34,7 +55,7 @@ class Workspace(AggregateRoot):
     """Рабочее пространство компании (создаётся админом).
 
     Attributes:
-        owner_id: Идентификатор владельца области.
+        owner_id: Идентификатор владельца области (ссылка на ID пользователя).
         space_type: Тип рабочего пространства (может быть 'private', 'public').
         name: Имя области.
         slug: Имя области отображаемое в URL.
@@ -56,18 +77,21 @@ class Workspace(AggregateRoot):
     members_count: NonNegativeInt
 
     @classmethod
-    def create(cls, command: CreateWorkspaceCommand) -> Self:
+    def create(cls, command: CreateWorkspaceCommand) -> tuple[Self, Member]:
         """Фабричный метод для создания рабочего пространства"""
 
+        workspace_id = uuid4()
+        owner = Member.create_owner(workspace_id=workspace_id, user_id=command.user_id)
         workspace = cls(
-            owner_id=command.owner_id,
-            space_type=WorkspaceType.PRIVATE,
+            id=workspace_id,
+            owner_id=command.user_id,
+            space_type=command.space_type,
             name=command.name,
             slug=command.slug,
             organization_type=command.organization_type,
             organization_url=command.organization_url,
             description=command.description,
-            members_count=0,
+            members_count=1,
         )
         cls._register_event(workspace, WorkspaceCreatedEvent(
             workspace_id=workspace.id,
@@ -77,22 +101,26 @@ class Workspace(AggregateRoot):
             description=workspace.description,
             use_ai_consultant=workspace.use_ai_consultant,
         ))
-        return workspace
+        return workspace, owner
 
     def invite_member(self, command: InviteMemberCommand) -> Invitation:
         if self.id != command.workspace_id:
-            # Ошибка! Не соответствуют идентификаторы
-            raise ...
+            raise InvariantViolationError(
+                "Workspace IDs in command do not match!",
+                entity_name=self.__class__.__name__,
+                details={"workspace_id": self.id, "command_workspace_id": command.workspace_id},
+            )
         invitation = Invitation(
             workspace_id=command.workspace_id,
             email=command.email,
             member_role=command.member_role,
-            token=generate_token(),
+            token=generate_safe_string(),
             expires_at=current_datetime() + timedelta(days=INVITATION_EXPIRES_AT_DAYS),
             status=InvitationStatus.PENDING,
         )
         self._register_event(MemberInvitedEvent(
             workspace_id=self.id,
+            invitation_id=invitation.id,
             email=invitation.email,
             member_role=invitation.member_role,
             token=invitation.token

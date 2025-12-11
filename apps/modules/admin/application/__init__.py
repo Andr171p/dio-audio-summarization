@@ -3,5 +3,5 @@ __all__ = (
     "WorkspaceRepository",
 )
 
-from .repository import WorkspaceRepository
+from .repositories import WorkspaceRepository
 from .usecases import CreateWorkspaceUseCase

@@ -1,7 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar
-
-if TYPE_CHECKING:
-    from modules.iam.domain import UserRole
+from typing import ClassVar
 
 from uuid import UUID
 
@@ -9,7 +6,7 @@ from pydantic import EmailStr, HttpUrl
 
 from modules.shared_kernel.domain import Event
 
-from .value_objects import OrganizationType
+from .value_objects import MemberRole, OrganizationType
 
 
 class WorkspaceCreatedEvent(Event):
@@ -27,6 +24,7 @@ class MemberInvitedEvent(Event):
     event_type: ClassVar[str] = "member_invited"
 
     workspace_id: UUID
+    invitation_id: UUID
     email: EmailStr
-    member_role: "UserRole"
+    member_role: MemberRole
     token: str

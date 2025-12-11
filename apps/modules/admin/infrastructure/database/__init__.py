@@ -1,7 +1,8 @@
 __all__ = (
+    "MemberModel",
     "SQLAlchemyWorkspaceRepository",
     "WorkspaceModel",
 )
 
-from .models import WorkspaceModel
-from .repository import SQLAlchemyWorkspaceRepository
+from .models import MemberModel, WorkspaceModel
+from .repositories import SQLAlchemyWorkspaceRepository

@@ -1,21 +1,17 @@
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from modules.iam.domain import UserRole
-
 from uuid import UUID
 
 from pydantic import EmailStr, HttpUrl
 
 from modules.shared_kernel.domain import Command
 
-from .value_objects import OrganizationType
+from .value_objects import MemberRole, OrganizationType, WorkspaceType
 
 
 class CreateWorkspaceCommand(Command):
     """Команда для создания рабочей области"""
 
-    owner_id: UUID
+    user_id: UUID
+    space_type: WorkspaceType
     name: str
     slug: str
     description: str | None = None
@@ -28,4 +24,4 @@ class InviteMemberCommand(Command):
 
     workspace_id: UUID
     email: EmailStr
-    member_role: "UserRole"
+    member_role: MemberRole
