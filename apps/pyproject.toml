@@ -25,6 +25,7 @@ dependencies = [
     "pandas>=2.3.3",
     "passlib>=1.7.4",
     "pedalboard>=0.9.19",
+    "pydantic>=2.12.3",
     "pyjwt>=2.10.1",
     "pytest>=9.0.1",
     "python-ffmpeg>=2.0.12",
