@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from ..domain import Entity
+from .dto import Pagination
 
 EntityT = TypeVar("EntityT", bound=Entity)
 
@@ -28,7 +29,7 @@ class ReadableRepository[EntityT: Entity](ABC):
     async def read(self, id: UUID, **kwargs) -> EntityT | None: pass  # noqa: A002
 
     @abstractmethod
-    async def read_all(self, page: int, limit: int) -> list[EntityT]: pass
+    async def read_all(self, pagination: Pagination) -> list[EntityT]: pass
 
 
 class CRUDRepository(WritableRepository[EntityT], ReadableRepository[EntityT], ABC):

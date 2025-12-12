@@ -5,8 +5,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ...application import OutboxMessage, OutboxRepository, OutboxStatus
-from ...application.exceptions import ReadingError
+from ...application import OutboxMessage, OutboxRepository, OutboxStatus, Pagination
+from ...application.exceptions import ConflictError, ReadingError, UpdateError
 from .base import Base
 from .primitives import DateTimeNull, JsonField, StrNull, UUIDField
 from .repository import DataMapper, SQLAlchemyRepository
@@ -49,9 +49,8 @@ class SQLAlchemyOutboxRepository(
     data_mapper = OutboxDataMapper
 
     async def get_by_status(
-            self, message_type: str, status: OutboxStatus, page: int, limit: int,
+            self, message_type: str, status: OutboxStatus, pagination: Pagination,
     ) -> list[OutboxMessage]:
-        offset = (page - 1) * limit
         try:
             conditions = (
                 (self.model.status == status) &
@@ -62,8 +61,8 @@ class SQLAlchemyOutboxRepository(
                 select(self.model)
                 .where(conditions)
                 .order_by(self.model.occurred_on.asc())
-                .offset(offset)
-                .limit(limit)
+                .offset(pagination.offset)
+                .limit(pagination.limit)
                 .with_for_update(skip_locked=True)
             )
             results = await self.session.execute(stmt)
@@ -92,6 +91,8 @@ class SQLAlchemyOutboxRepository(
             model = result.scalar_one()
             return self.data_mapper.model_to_entity(model)
         except IntegrityError as e:
-            ...
+            raise ConflictError(entity_name=self.__class__.__name__, original_error=e) from e
         except SQLAlchemyError as e:
-            ...
+            raise UpdateError(
+                entity_name=self.__class__.__name__, entity_id=message.id, original_error=e
+            ) from e

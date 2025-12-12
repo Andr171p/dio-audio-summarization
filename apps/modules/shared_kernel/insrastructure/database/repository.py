@@ -7,6 +7,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...application import Pagination
 from ...application.exceptions import (
     ConflictError,
     CreationError,
@@ -62,17 +63,21 @@ class SQLAlchemyRepository[EntityT: Entity, ModelT: Base]:
                 entity_id=id, entity_name=self.entity.__name__, original_error=e
             ) from e
 
-    async def read_all(self, page: int, limit: int) -> list[EntityT]:
+    async def read_all(self, pagination: Pagination) -> list[EntityT]:
         try:
-            offset = (page - 1) * limit
-            stmt = select(self.model).order_by(self.model.created_at).offset(offset).limit(limit)
+            stmt = (
+                select(self.model)
+                .order_by(self.model.created_at)
+                .offset(pagination.offset)
+                .limit(pagination.limit)
+            )
             results = await self.session.execute(stmt)
             models = results.scalars().all()
             return [self.data_mapper.model_to_entity(model) for model in models]
         except SQLAlchemyError as e:
             raise ReadingError(
                 entity_name=self.entity.__name__,
-                entity_id=f"page={page}, limit={limit}",
+                entity_id=f"page={pagination.page}, limit={pagination.limit}",
                 original_error=e
             ) from e
 

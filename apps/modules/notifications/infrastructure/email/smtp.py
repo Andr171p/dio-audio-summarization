@@ -48,7 +48,12 @@ class SMTPEmailSender(EmailSender):
         html_part = MIMEText(letter.body_markup, "html", "utf-8")
         text_part.attach(html_part)
         for attachment in letter.attachments:
-            part = MIMEBase("application", "octet-stream")
+            maintype, subtype = (
+                attachment.content_type.split("/", 1)
+                if "/" in attachment.content_type
+                else ("application", "octet-stream")
+            )
+            part = MIMEBase(maintype, subtype)
             part.set_payload(attachment.content)
             encoders.encode_base64(part)
             part.add_header(

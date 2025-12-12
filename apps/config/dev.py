@@ -96,6 +96,12 @@ class EmbeddingsSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="EMBEDDINGS_")
 
 
+class MailRuSettings(BaseSettings):
+    password: str = "<PASSWORD>"
+
+    model_config = SettingsConfigDict(env_prefix="MAILRU_")
+
+
 class AppSettings(BaseSettings):
     name: str = "Alyosha AI"
     port: int = 8000
@@ -119,6 +125,7 @@ class Settings(BaseSettings):
     vk: VKSettings = VKSettings()
     oauth: OAuthSettings = OAuthSettings()
     embeddings: EmbeddingsSettings = EmbeddingsSettings()
+    mailru: MailRuSettings = MailRuSettings()
 
 
 settings: Final[Settings] = Settings()

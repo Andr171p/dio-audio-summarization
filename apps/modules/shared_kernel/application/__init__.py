@@ -7,13 +7,14 @@ __all__ = (
     "OutboxMessage",
     "OutboxRepository",
     "OutboxStatus",
+    "Pagination",
     "ReadableRepository",
     "UnitOfWork",
     "WritableRepository",
 )
 
 from .cache import KeyValueCache
-from .dto import DTO
+from .dto import DTO, Pagination
 from .message_bus import Message, MessageBus
 from .outbox import OutboxMessage, OutboxRepository, OutboxStatus
 from .repositories import CRUDRepository, ReadableRepository, WritableRepository

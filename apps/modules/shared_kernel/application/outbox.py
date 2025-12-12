@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt
 
 from ..domain import EventT
 from ..utils import current_datetime
+from .dto import Pagination
 from .repositories import CRUDRepository
 
 
@@ -74,7 +75,7 @@ class OutboxMessage(BaseModel):
 class OutboxRepository(CRUDRepository[OutboxMessage]):
     @abstractmethod
     async def get_by_status(
-            self, message_type: str, status: OutboxStatus, page: int, limit: int,
+            self, message_type: str, status: OutboxStatus, pagination: Pagination,
     ) -> list[OutboxMessage]:
         """Получение сообщений с их типу и статусу"""
 
