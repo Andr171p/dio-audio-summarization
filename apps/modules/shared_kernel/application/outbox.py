@@ -52,18 +52,22 @@ class OutboxMessage(BaseModel):
             max_attempts=max_attempts,
         )
 
+    def mark_processing(self) -> None:
+        """Сообщение обрабатывается"""
+
+        self.status = OutboxStatus.PROCESSING
+        self.attempts += 1
+
     def mark_processed(self) -> None:
         """Отметить успешно обработанное событие"""
 
         self.status = OutboxStatus.PROCESSED
-        self.attempts += 1
         self.processed_at = current_datetime()
 
     def mark_failed(self, error: str) -> None:
         """Событие завершилось с ошибкой"""
 
         self.status = OutboxStatus.FAILED
-        self.attempts += 1
         self.last_error = error
 
     def can_retry(self) -> bool:
@@ -75,10 +79,6 @@ class OutboxMessage(BaseModel):
 class OutboxRepository(CRUDRepository[OutboxMessage]):
     @abstractmethod
     async def get_by_status(
-            self, message_type: str, status: OutboxStatus, pagination: Pagination,
+            self, status: OutboxStatus, pagination: Pagination
     ) -> list[OutboxMessage]:
         """Получение сообщений с их типу и статусу"""
-
-    @abstractmethod
-    async def refresh(self, message: OutboxMessage) -> None:
-        """Обновляет существующее событие"""

@@ -45,3 +45,12 @@ async def create_workspace(
     summary="Приглашает участника в рабочую область",
 )
 async def invite_to_workspace() -> SentInvitation: ...
+
+
+@router.post(
+    path="/{workspace_id}/invitations/accept/{token}",
+    status_code=status.HTTP_201_CREATED,
+    response_model=...,
+    summary="Принять приглашение",
+)
+async def accept_invitation() -> ...: ...
